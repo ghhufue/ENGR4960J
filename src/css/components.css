@@ -10,6 +10,7 @@
 .icon-button { display: inline-grid; place-items: center; width: 36px; height: 36px; background: transparent; border: 0; border-radius: 6px; }
 .icon-button:hover { background: var(--hover); }
 .theme-toggle { flex: 0 0 36px; }
+.language-toggle { min-width: 44px; flex: 0 0 44px; font-size: 12px; font-weight: 600; color: var(--secondary); }
 .theme-toggle[aria-pressed="true"] { color: var(--accent-text); background: var(--accent-soft); }
 .badge { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; padding: 2px 6px; border-radius: 4px; font-size: 12px; line-height: 18px; font-weight: 400; }
 .badge .icon { width: 12px; height: 12px; flex-basis: 12px; }

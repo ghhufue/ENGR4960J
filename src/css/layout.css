@@ -21,6 +21,8 @@
 .steps-nav { display: grid; gap: 2px; }
 .nav-number { width: 20px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .nav-status { margin-left: auto; display: grid; place-items: center; }
+.nav-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.nav-number, .nav-status { flex-shrink: 0; }
 .nav-status .icon { width: 13px; height: 13px; }
 .nav-status.neutral { color: var(--muted); }
 .nav-status.success { color: var(--success); }

@@ -1,3 +1,4 @@
+import { t, getLocale } from './i18n.js';
 export function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 }
@@ -5,7 +6,7 @@ export function textCount(value) {
   const text = String(value || '').trim();
   const chinese = (text.match(/[\u3400-\u9fff]/g) || []).length;
   const words = (text.replace(/[\u3400-\u9fff]/g, ' ').match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) || []).length;
-  return { chinese, words, label: chinese ? `${chinese} 个汉字 · ${words} 个英文词（估算）` : `${words} words（估算）` };
+  return { chinese, words, label: chinese ? t('{chinese} 个汉字 · {words} 个英文词（估算）', { chinese, words }) : t('{words} words（估算）', { words }) };
 }
 export function safeFilename(title) {
   return String(title || '工程伦理分析').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-').replace(/[. ]+$/g, '').trim().slice(0, 90) || '工程伦理分析';
@@ -30,4 +31,4 @@ export function fieldVisible(field, data) {
   const { key, values, absent } = field.when;
   return absent ? !hasValue(data[key]) : values.includes(data[key]);
 }
-export function timeLabel(value) { return value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '尚未保存'; }
+export function timeLabel(value) { return value ? new Date(value).toLocaleString(getLocale(), { hour12: false }) : t('尚未保存'); }

@@ -23,7 +23,7 @@ try {
   socket.addEventListener('message', event => { const message = JSON.parse(event.data); if (message.id) { const entry = pending.get(message.id); pending.delete(message.id); if (message.error) entry.reject(new Error(message.error.message)); else entry.resolve(message.result); } else if (message.method === 'Runtime.exceptionThrown') exceptions.push(message.params.exceptionDetails); });
   const command = (method, params = {}) => new Promise((resolveCommand, reject) => { const id = ++nextId; pending.set(id, { resolve: resolveCommand, reject }); socket.send(JSON.stringify({ id, method, params })); });
   const evaluate = async expression => { const result = await command('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }); if (result.exceptionDetails) throw new Error(result.exceptionDetails.text + ' ' + (result.exceptionDetails.exception?.description || '')); return result.result.value; };
-  const wait = async expression => { for (let attempt = 0; attempt < 60; attempt++) { if (await evaluate(expression)) return; await delay(100); } throw new Error(`Timed out: ${expression}`); };
+  const wait = async expression => { for (let attempt = 0; attempt < 60; attempt++) { if (await evaluate(expression)) return; await delay(100); } throw new Error(`Timed out: ${expression}\nRuntime: ${JSON.stringify(exceptions)}\nPage: ${await evaluate('document.body.innerText.slice(0, 700)')}`); };
   const click = async selector => { await evaluate(`(() => { const element = document.querySelector(${JSON.stringify(selector)}); if (!element) throw new Error('Missing selector: ' + ${JSON.stringify(selector)}); element.click(); })()`); };
   const fill = async (target, key, value) => { await evaluate(`(() => { const element = document.querySelector('[data-target="${target}"][data-key="${key}"]'); if (!element) throw new Error('Missing field ${target}.${key}'); element.value = ${JSON.stringify(value)}; element.dispatchEvent(new Event('input', {bubbles:true})); })()`); };
   await command('Runtime.enable'); await command('Page.enable');
@@ -31,6 +31,20 @@ try {
   await command('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
   await command('Page.navigate', { url: process.env.PREVIEW_URL || 'http://127.0.0.1:5173' }); await wait("!document.getElementById('boot-message') && document.querySelector('h1')?.textContent === '案例概览'");
   let screenshot = await command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false }); await writeFile(resolve(root, '.tmp', 'workbench-desktop.png'), Buffer.from(screenshot.data, 'base64'));
+  await click('#language-toggle');
+  assert(await evaluate("document.documentElement.lang === 'en' && document.querySelector('h1').textContent === 'Case overview'"));
+  for (let number = 1; number <= 10; number++) {
+    await click(`.sidebar [data-route="step-${number}"]`); await click(`[data-action="check-step"][data-step="${number}"]`);
+    const chineseUI = await evaluate(`(() => { const walker = document.createTreeWalker(document.getElementById('main'), NodeFilter.SHOW_TEXT); const found = []; let node; while (node = walker.nextNode()) { const text = node.textContent.trim(); if (/[\\u3400-\\u9fff]/.test(text)) found.push(text); } return found; })()`);
+    assert.deepEqual(chineseUI, [], `Untranslated UI on Step ${number}`);
+  }
+  for (const route of ['sources', 'reflection', 'checks']) { await click(`.sidebar [data-route="${route}"]`); assert(await evaluate("!/[㐀-鿿]/.test(document.querySelector('h1').textContent)")); }
+  await click('.sidebar [data-route="overview"]');
+  screenshot = await command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false }); await writeFile(resolve(root, '.tmp', 'workbench-desktop-en.png'), Buffer.from(screenshot.data, 'base64'));
+  await evaluate('window.__qaBeforeReload = true'); await command('Page.reload'); await wait("!window.__qaBeforeReload && !document.getElementById('boot-message')");
+  assert(await evaluate("document.documentElement.lang === 'en' && document.querySelector('h1').textContent === 'Case overview'"));
+  await click('#language-toggle'); assert(await evaluate("document.documentElement.lang === 'zh-CN'"));
+  console.log('PASS: English UI across all 10 steps and supporting pages, localized checks, and saved language preference.');
   await click('#theme-toggle'); assert(await evaluate("document.documentElement.dataset.theme === 'dark' && document.getElementById('theme-toggle').getAttribute('aria-pressed') === 'true'"));
   assert.equal(await evaluate('getComputedStyle(document.body).backgroundColor'), 'rgb(17, 20, 27)');
   const darkPairs = await evaluate(`(() => { const styles = getComputedStyle(document.documentElement); return [['--text', '--surface'], ['--muted', '--sidebar'], ['--on-action', '--primary-bg'], ['--accent-text', '--accent-soft'], ['--success', '--success-soft'], ['--warning', '--warning-soft'], ['--error', '--error-soft'], ['--info', '--info-soft']].map(pair => pair.map(key => styles.getPropertyValue(key).trim())); })()`);
@@ -49,6 +63,12 @@ try {
   await click('#theme-toggle');
   console.log('PASS: toggling light/dark preserves the active editor and its content.');
   await click('input[data-target="ISS-001"][data-key="category"][value="公司相关"]');
+  await delay(350); const projectBeforeLanguage = await evaluate("localStorage.getItem('engr4960j.ethics-workbench.v1')");
+  await click('#language-toggle');
+  assert(await evaluate("document.getElementById('record-ISS-001').classList.contains('editing') && document.querySelector('[data-target=\"ISS-001\"][data-key=\"description\"]').value === 'Manual test description' && document.querySelector('input[data-target=\"ISS-001\"][value=\"公司相关\"]').checked"));
+  assert.equal(await evaluate("localStorage.getItem('engr4960j.ethics-workbench.v1')"), projectBeforeLanguage);
+  await click('#language-toggle');
+  console.log('PASS: switching language keeps the editor, canonical option values and full project backup unchanged.');
   await click('[data-action="add"][data-type="issues"]'); await fill('ISS-002', 'title', 'Browser QA issue B'); await fill('ISS-002', 'description', 'Second issue');
   await click('input[data-target="ISS-002"][data-key="category"][value="工程师相关"]');
   await click('[data-action="add"][data-type="stakeholders"]'); await fill('STK-001', 'title', 'Test stakeholder'); await fill('STK-001', 'impact', 'Manual impact');
@@ -89,12 +109,20 @@ try {
   await click('[data-action="confirm"]'); await wait("document.querySelector('h1').textContent === '案例概览'");
   await click('.sidebar [data-route="step-8"]'); assert(await evaluate("document.querySelector('#main').textContent.includes('Test solution')"));
   console.log('PASS: real JSON/TXT downloads and confirmed backup import preserve records and active branches.');
+  await click('#language-toggle'); await click('[data-action="reference"][data-id="SOL-001"]');
+  assert(await evaluate("document.querySelector('#reference h2').textContent === 'Related materials' && document.getElementById('reference').textContent.includes('Short-term actions')"));
+  await click('[data-action="close-reference"]');
+  await evaluate("document.querySelector('.project-menu').open = true"); await click('.project-menu [data-action="new-project"]');
+  assert(await evaluate("document.getElementById('confirm-title').textContent === 'Create a new case workspace?'")); await click('[data-action="cancel-confirm"]');
   await command('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await evaluate("document.querySelector('.mobile-menu').click()"); assert(await evaluate("document.getElementById('nav-dialog').open"));
   await click('#nav-dialog [data-route="step-1"]'); assert(!(await evaluate("document.getElementById('nav-dialog').open")));
   assert(await evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1'));
   screenshot = await command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false }); await writeFile(resolve(root, '.tmp', 'workbench-mobile.png'), Buffer.from(screenshot.data, 'base64'));
   console.log('PASS: mobile navigation and no page-level horizontal overflow.');
+  screenshot = await command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false }); await writeFile(resolve(root, '.tmp', 'workbench-mobile-en.png'), Buffer.from(screenshot.data, 'base64'));
+  await command('Emulation.setDeviceMetricsOverride', { width: 768, height: 900, deviceScaleFactor: 1, mobile: false });
+  assert(await evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1'));
   await command('Emulation.setDeviceMetricsOverride', { width: 320, height: 720, deviceScaleFactor: 1, mobile: true });
   assert(await evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1'));
   await click('#theme-toggle'); assert(await evaluate("document.documentElement.dataset.theme === 'light'")); await click('#theme-toggle');
@@ -103,6 +131,7 @@ try {
   await command('Page.navigate', { url: new URL(`file:///${releasePath.replaceAll('\\', '/')}`).href }); await wait("!document.getElementById('boot-message') && document.querySelector('h1')?.textContent === '案例概览'");
   assert(await evaluate("document.documentElement.dataset.theme === 'light'")); await click('#theme-toggle');
   assert(await evaluate("document.documentElement.dataset.theme === 'dark'"));
+  await click('#language-toggle'); assert(await evaluate("document.documentElement.lang === 'en' && document.querySelector('h1').textContent === 'Case overview'"));
   assert.equal(exceptions.length, 0, JSON.stringify(exceptions));
   console.log('PASS: final single-file format starts directly from file://, with no browser runtime exceptions.');
   console.log('Screenshots: .tmp/workbench-desktop.png, .tmp/workbench-mobile.png. Release QA artifact is temporary; no dist release generated.');

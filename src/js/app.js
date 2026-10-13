@@ -11,9 +11,11 @@ import { typeBadge } from './ui/records.js';
 import { icon } from './ui/icons.js';
 import { readTheme, applyTheme, saveTheme } from './core/theme.js';
 import { renderThemeToggle } from './ui/theme-control.js';
+import { t, getLocale, readLanguage, setLanguage, saveLanguage } from './core/i18n.js';
 import { renderOverview, renderStep, renderSources, renderReflection, renderChecks, renderTopbar, renderNav } from './ui/pages.js';
 let storage;
 try { storage = window.localStorage; } catch { storage = null; }
+setLanguage(readLanguage(storage), document.documentElement);
 const store = new Store(storage);
 const validRoutes = new Set(['overview', 'sources', 'reflection', 'checks', ...STEPS.map(step => `step-${step.number}`)]);
 const initialRoute = location.hash.slice(1) || store.state.lastRoute;
@@ -24,22 +26,23 @@ const sectionFor = type => sections.find(section => section.type === type);
 const byId = id => document.getElementById(id);
 let confirmCallback = null; let previousReferenceFocus = null;
 function notice(message, persist = false) {
-  const toast = byId('toast'); toast.textContent = message; toast.hidden = false;
+  notice.source = message;
+  const toast = byId('toast'); toast.textContent = t(message); toast.hidden = false;
   clearTimeout(notice.timer); if (!persist) notice.timer = setTimeout(() => { toast.hidden = true; }, 6500);
-  byId('live-status').textContent = message;
+  byId('live-status').textContent = t(message);
 }
 function saveIndicator() {
   const element = byId('save-status'); if (!element) return;
-  const labels = { idle: '本地保存', saving: '正在保存', saved: `已保存 ${store.savedAt ? new Date(store.savedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : ''}`, failed: '保存失败 · 请导出备份' };
-  element.textContent = labels[store.saveStatus]; element.classList.toggle('save-failed', store.saveStatus === 'failed'); element.title = store.error || '内容保存在当前浏览器，换设备前请导出项目备份。';
-  if (store.error) { const banner = byId('storage-error') || document.createElement('div'); banner.id = 'storage-error'; banner.className = 'storage-error'; banner.setAttribute('role', 'alert'); banner.innerHTML = `<span>${escapeHtml(store.error)}</span><button class="button secondary" data-action="backup">导出备份</button>`; if (!banner.isConnected) byId('topbar').after(banner); } else byId('storage-error')?.remove();
+  const labels = { idle: t('本地保存'), saving: t('正在保存'), saved: t('已保存 {time}', { time: store.savedAt ? new Date(store.savedAt).toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' }) : '' }), failed: t('保存失败 · 请导出备份') };
+  element.textContent = labels[store.saveStatus]; element.classList.toggle('save-failed', store.saveStatus === 'failed'); element.title = t(store.error || '内容保存在当前浏览器，换设备前请导出项目备份。');
+  if (store.error) { const banner = byId('storage-error') || document.createElement('div'); banner.id = 'storage-error'; banner.className = 'storage-error'; banner.setAttribute('role', 'alert'); banner.innerHTML = `<span>${escapeHtml(t(store.error))}</span><button class="button secondary" data-action="backup">${t('导出备份')}</button>`; if (!banner.isConnected) byId('topbar').after(banner); } else byId('storage-error')?.remove();
 }
 function renderReference() {
   const aside = byId('reference'); const record = store.get(ui.referenceId);
   if (!record) { aside.hidden = true; document.body.classList.remove('has-reference'); return; }
   aside.hidden = false; document.body.classList.add('has-reference');
   const section = sectionFor(record.type); const url = safeUrl(record.data.url);
-  aside.innerHTML = `<div class="reference-heading"><h2 tabindex="-1">关联材料</h2><button class="icon-button" data-action="close-reference" aria-label="关闭关联材料">${icon('close')}</button></div><div class="reference-content"><div class="record-meta">${typeBadge(record.type)}<span class="record-id">${record.id}</span>${record.archived ? '<span class="badge neutral">已归档</span>' : ''}</div><h3>${escapeHtml(record.data.title || '尚未命名')}</h3>${renderFields(store, section?.fields.filter(field => field.key !== 'title') || [], record.data, record.id, true)}${url ? `<a class="button secondary" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">打开来源链接 ${icon('arrow')}</a>` : ''}<p class="subtle">版本 ${record.version} · ${escapeHtml(record.data.verification || '由组员自行核对')}</p></div><div class="reference-footer"><button class="button secondary" data-action="jump-record" data-id="${record.id}">到原位置${record.archived || ui.presentation ? '查看' : '修改'} ${icon('arrow')}</button></div>`;
+  aside.innerHTML = `<div class="reference-heading"><h2 tabindex="-1">${t('关联材料')}</h2><button class="icon-button" data-action="close-reference" aria-label="${t('关闭关联材料')}">${icon('close')}</button></div><div class="reference-content"><div class="record-meta">${typeBadge(record.type)}<span class="record-id">${record.id}</span>${record.archived ? `<span class="badge neutral">${t('已归档')}</span>` : ''}</div><h3>${escapeHtml(record.data.title || t('尚未命名'))}</h3>${renderFields(store, section?.fields.filter(field => field.key !== 'title') || [], record.data, record.id, true)}${url ? `<a class="button secondary" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${t('打开来源链接')} ${icon('arrow')}</a>` : ''}<p class="subtle">${escapeHtml(t('版本 {version} · {status}', { version: record.version, status: t(record.data.verification || '由组员自行核对') }))}</p></div><div class="reference-footer"><button class="button secondary" data-action="jump-record" data-id="${record.id}">${t(record.archived || ui.presentation ? '到原位置查看' : '到原位置修改')} ${icon('arrow')}</button></div>`;
 }
 function renderMain(preserve = false) {
   const active = document.activeElement; const activeId = preserve ? active?.id : ''; const cursor = preserve && active?.selectionStart; const scroll = window.scrollY;
@@ -51,15 +54,22 @@ function renderMain(preserve = false) {
   else if (ui.route === 'reflection') html = renderReflection(store, ui);
   else if (ui.route === 'checks') html = renderChecks(store, ui);
   else html = renderOverview(store, ui);
-  if (ui.returnContext) html = `<button class="return-link text-button" data-action="return-context">${icon('back')} 返回关联记录</button>${html}`;
+  if (ui.returnContext) html = `<button class="return-link text-button" data-action="return-context">${icon('back')} ${t('返回关联记录')}</button>${html}`;
   byId('main').innerHTML = html;
   document.body.classList.toggle('presentation', ui.presentation);
-  document.title = `${step ? `${step.number}. ${step.title}` : { overview: '案例概览', sources: '来源库', reflection: '过程与反思', checks: '完成检查' }[ui.route]} · 工程伦理工作台`;
+  document.title = `${step ? `${step.number}. ${t(step.title)}` : t({ overview: '案例概览', sources: '来源库', reflection: '过程与反思', checks: '完成检查' }[ui.route])} · ${t('工程伦理工作台')}`;
   openDetails.forEach(id => { if (byId(id)) byId(id).open = true; });
   if (activeId && byId(activeId)) { byId(activeId).focus({ preventScroll: true }); try { if (cursor != null) byId(activeId).setSelectionRange(cursor, cursor); } catch {} }
   if (preserve) window.scrollTo(0, scroll);
 }
-function renderShell() { byId('topbar').innerHTML = renderTopbar(store, ui); byId('sidebar').innerHTML = renderNav(store, ui); byId('nav-dialog').innerHTML = renderNav(store, ui, true); saveIndicator(); }
+function renderShell() {
+  byId('topbar').innerHTML = renderTopbar(store, ui); byId('sidebar').innerHTML = renderNav(store, ui); byId('nav-dialog').innerHTML = renderNav(store, ui, true);
+  document.querySelector('.skip-link').textContent = t('跳到分析内容');
+  for (const id of ['sidebar', 'nav-dialog']) byId(id).setAttribute('aria-label', t('分析导航'));
+  byId('reference').setAttribute('aria-label', t('关联材料'));
+  document.querySelector('meta[name="description"]').content = t('以完整十步框架整理事实、假设与伦理判断的工程伦理分析工作台。');
+  saveIndicator();
+}
 function navigate(route, { edit = '', keepReturn = false } = {}) {
   if (!validRoutes.has(route)) return;
   ui.route = route; ui.editId = edit; ui.search = ''; ui.category = ''; ui.openImportance = false; ui.showArchived = edit ? Boolean(store.get(edit)?.archived) : false;
@@ -91,7 +101,7 @@ function changeField(element) {
 }
 function confirmDialog(title, body, label, callback, danger = false) {
   confirmCallback = callback; const dialog = byId('confirm-dialog');
-  dialog.innerHTML = `<div class="dialog-body"><h2 id="confirm-title">${escapeHtml(title)}</h2><p>${escapeHtml(body)}</p><div class="dialog-actions"><button class="button secondary" data-action="cancel-confirm">取消</button><button class="button ${danger ? 'danger' : 'primary'}" data-action="confirm">${escapeHtml(label)}</button></div></div>`;
+  dialog.innerHTML = `<div class="dialog-body"><h2 id="confirm-title">${escapeHtml(t(title))}</h2><p>${escapeHtml(t(body))}</p><div class="dialog-actions"><button class="button secondary" data-action="cancel-confirm">${t('取消')}</button><button class="button ${danger ? 'danger' : 'primary'}" data-action="confirm">${escapeHtml(t(label))}</button></div></div>`;
   dialog.showModal(); dialog.querySelector('[data-action="cancel-confirm"]').focus();
 }
 function addRecord(type, origin, data = {}, parent = null) {
@@ -151,14 +161,25 @@ document.addEventListener('click', event => {
     if (action === 'backup') { backup(store); notice('项目备份已交给浏览器下载。实际截图需另行备份。'); }
     if (action === 'export-notes') { exportNotes(store); notice('已导出人工输入笔记，不包含自动撰写的报告正文。'); }
     if (action === 'import') { byId('import-file').value = ''; byId('import-file').click(); }
-    if (action === 'new-project') confirmDialog('新建案例工作区？', '将先下载当前项目备份，再新建空白案例。实际截图文件不包含在备份中。', '备份并新建', () => { backup(store); const state = freshState(); state.meta.title = '未命名案例'; store.replace(state); ui.checks = {}; ui.referenceId = ''; renderReference(); navigate('overview'); });
+    if (action === 'new-project') confirmDialog('新建案例工作区？', '将先下载当前项目备份，再新建空白案例。实际截图文件不包含在备份中。', '备份并新建', () => { backup(store); const state = freshState(); state.meta.title = t('未命名案例'); store.replace(state); ui.checks = {}; ui.referenceId = ''; renderReference(); navigate('overview'); });
     if (action === 'presentation') { ui.presentation = !ui.presentation; ui.editId = ''; renderShell(); renderMain(true); renderReference(); }
     if (action === 'theme') {
       ui.theme = applyTheme(document.documentElement, ui.theme === 'dark' ? 'light' : 'dark');
       const persisted = saveTheme(storage, ui.theme);
       button.outerHTML = renderThemeToggle(ui.theme); byId('theme-toggle').focus({ preventScroll: true });
-      byId('live-status').textContent = `已切换到${ui.theme === 'dark' ? '深色' : '亮色'}模式。`;
+      byId('live-status').textContent = t(ui.theme === 'dark' ? '已切换到深色模式。' : '已切换到亮色模式。');
       if (!persisted) notice('主题已切换，浏览器未能保存主题偏好。');
+    }
+    if (action === 'language') {
+      const details = [...byId('main').querySelectorAll('details')].map(element => element.open);
+      setLanguage(getLocale() === 'en' ? 'zh-CN' : 'en', document.documentElement);
+      const persisted = saveLanguage(storage);
+      renderShell(); renderMain(true); renderReference();
+      [...byId('main').querySelectorAll('details')].forEach((element, index) => { element.open = details[index] || false; });
+      byId('language-toggle').focus({ preventScroll: true });
+      if (!byId('toast').hidden && notice.source) byId('toast').textContent = t(notice.source);
+      byId('live-status').textContent = t(getLocale() === 'en' ? '已切换到英文界面。' : '已切换到中文界面。');
+      if (!persisted) notice('语言已切换，浏览器未能保存语言偏好。');
     }
     if (action === 'menu') { byId('nav-dialog').innerHTML = renderNav(store, ui, true); byId('nav-dialog').showModal(); }
     if (action === 'close-nav') byId('nav-dialog').close();
