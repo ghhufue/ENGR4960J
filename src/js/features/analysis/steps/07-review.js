@@ -1,0 +1,5 @@
+import { text, area, one, many, refs } from '../fields.js';
+export const reviewTopics = ['利益相关者是否遗漏', '事实与假设是否混淆', '术语是否有歧义', '原则冲突是否充分讨论', '是否存在不同解释或反例'];
+export const step = { number: 7, title: '复核分析过程', english: 'Review Process', goal: '回看前面的判断，登记遗漏和修订行动。', prompt: '缺项提示只检查记录结构。哪些内容遗漏或需要不同解释，仍需组员自己检查。', fields: [...reviewTopics.map((label, i) => one(`topic${i}`, label, ['发现需处理事项', '经检查未发现', '尚未检查'])), area('scopeReason', '复核范围、依据与未发现新要素时的理由')], sections: [
+  { type: 'reviews', title: '遗漏发现与行动', singular: '复核发现', fields: [text('title', '遗漏要素标题'), one('kind', '发现类型', ['新问题', '新事实', '新缺口', '假设修订', '术语补充', '原则分析修订', '其他']), area('description', '具体发现'), refs('related', '需要修订的记录', ['issues', 'facts', 'gaps', 'assumptions', 'terms', 'principles']), many('actions', '后续行动', ['补资料', '核查来源', '修订分析', '新增问题', '形成方案', '其他']), one('status', '处理状态', ['待处理', '处理中', '已处理', '暂不处理']), area('result', '处理结果或暂不处理理由', true, { when: { key: 'status', values: ['已处理', '暂不处理'] } }), refs('results', '产生的记录', ['issues', 'facts', 'gaps', 'solutions'])] }
+] };

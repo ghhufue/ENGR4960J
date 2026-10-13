@@ -1,0 +1,25 @@
+const paths = {
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2m-15-7 1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
+  moon: '<path d="M20.5 13A9 9 0 0 1 11 3.5 9 9 0 1 0 20.5 13z"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  book: '<path d="M12 5v16M3 4h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5v16h-5a4 4 0 0 0-4 1 4 4 0 0 0-4-1H3z"/>',
+  layers: '<path d="m12 3 10 6-10 6L2 9zM2 13l10 6 10-6M2 17l10 6 10-6"/>',
+  check: '<path d="m5 12 4 4L19 6"/>',
+  circle: '<circle cx="12" cy="12" r="8"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  alert: '<path d="m12 3 10 18H2zM12 9v4M12 16h.01"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  arrow: '<path d="M5 12h14m-5-5 5 5-5 5"/>',
+  back: '<path d="M19 12H5m5-5-5 5 5 5"/>',
+  close: '<path d="m6 6 12 12M6 18 18 6"/>',
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
+  link: '<path d="m10 13 4-4M8 16l-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M16 8l2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0" transform="translate(1 0) scale(.9)"/>',
+  download: '<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
+  upload: '<path d="M12 16V4m-5 5 5-5 5 5M4 16v5h16v-5"/>',
+  archive: '<path d="M4 8h16v13H4zM3 3h18v5H3zM9 12h6"/>',
+  screen: '<rect x="3" y="3" width="18" height="14" rx="2"/><path d="M12 17v4M8 21h8"/>',
+  file: '<path d="M14 2H5v20h14V7zM14 2v5h5M8 12h8M8 16h8"/>',
+  shield: '<path d="m12 2 9 4v6c0 5-9 10-9 10S3 17 3 12V6zM8 12l3 3 5-6"/>'
+};
+export function icon(name, extra = '') { return `<svg class="icon ${extra}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.file}</svg>`; }

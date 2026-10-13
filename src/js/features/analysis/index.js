@@ -1,0 +1,12 @@
+import { step as s1 } from './steps/01-issues.js';
+import { step as s2 } from './steps/02-focus.js';
+import { step as s3 } from './steps/03-facts.js';
+import { step as s4 } from './steps/04-assumptions.js';
+import { step as s5 } from './steps/05-terms.js';
+import { step as s6 } from './steps/06-principles.js';
+import { step as s7 } from './steps/07-review.js';
+import { step as s8 } from './steps/08-solutions.js';
+import { step as s9 } from './steps/09-constraints.js';
+import { step as s10 } from './steps/10-future.js';
+export const STEPS = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10];
+export const getStep = number => STEPS.find(step => step.number === Number(number));

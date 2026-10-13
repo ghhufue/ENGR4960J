@@ -1,0 +1,67 @@
+.topbar { position: sticky; top: 0; height: var(--topbar-height); display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 24px; background: var(--surface); border-bottom: 1px solid var(--line); z-index: 20; }
+.brand-lockup, .topbar-actions { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand-icon { color: var(--accent); display: grid; place-items: center; }
+.brand-icon .icon { width: 20px; height: 20px; }
+.brand-name { font-weight: 600; white-space: nowrap; }
+.brand-divider { height: 18px; width: 1px; background: var(--line); }
+.project-name { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+.save-status { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.save-failed { color: var(--error); }
+.workspace { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); min-height: calc(100vh - var(--topbar-height)); }
+.sidebar { height: calc(100vh - var(--topbar-height)); position: sticky; top: var(--topbar-height); background: var(--sidebar); border-right: 1px solid var(--line); padding: 24px 12px 20px; display: flex; flex-direction: column; overflow-y: auto; }
+.workspace-label { display: flex; align-items: center; gap: 10px; padding: 0 8px 24px; }
+.workspace-label strong, .workspace-label small { display: block; }
+.workspace-label strong { font-size: 13px; }
+.workspace-label small { margin-top: 2px; font-size: 12px; }
+.workspace-avatar { display: grid; place-items: center; width: 32px; height: 32px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--accent); font-weight: 600; }
+.nav-item { display: flex; align-items: center; gap: 10px; text-decoration: none; min-height: 36px; padding: 8px 10px; width: 100%; background: transparent; border: 0; border-radius: var(--radius); font-size: 13px; text-align: left; color: var(--secondary); }
+.nav-item:hover { background: var(--nav-hover); }
+.nav-item.active { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; box-shadow: inset 2px 0 var(--accent); }
+.nav-group-label { display: flex; justify-content: space-between; margin: 22px 10px 8px; color: var(--muted); font-size: 12px; }
+.steps-nav { display: grid; gap: 2px; }
+.nav-number { width: 20px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.nav-status { margin-left: auto; display: grid; place-items: center; }
+.nav-status .icon { width: 13px; height: 13px; }
+.nav-status.neutral { color: var(--muted); }
+.nav-status.success { color: var(--success); }
+.nav-status.warning { color: var(--warning); }
+.nav-status.accent { color: var(--accent); }
+.sidebar-bottom { margin: auto 8px 0; padding-top: 28px; color: var(--secondary); font-size: 12px; }
+.sidebar-bottom > span:last-child { display: block; margin-top: 4px; color: var(--muted); }
+.local-dot { display: inline-block; width: 6px; height: 6px; background: var(--success); border-radius: 50%; margin-right: 5px; }
+.main { width: 100%; max-width: 1024px; margin: 0 auto; padding: 32px 32px 100px; min-width: 0; outline: none; }
+.page-heading { margin-bottom: 32px; }
+.eyebrow { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.page-title-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.english-title { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.page-description { font-size: 15px; color: var(--secondary); line-height: 24px; margin-top: 16px; max-width: 720px; }
+.content-section { margin: 32px 0; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.section-heading h2 { display: flex; align-items: center; gap: 8px; }
+.section-heading p { margin-top: 4px; }
+.count { border: 1px solid var(--line); border-radius: 4px; font-size: 12px; line-height: 20px; padding: 0 6px; color: var(--muted); background: var(--surface); font-weight: 400; }
+.overview-hero { display: flex; justify-content: space-between; align-items: center; gap: 32px; padding: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.overview-hero h2 { font-size: 24px; line-height: 34px; margin: 12px 0; }
+.overview-hero p { max-width: 520px; color: var(--secondary); font-size: 14px; margin-bottom: 20px; }
+.progress-summary { display: grid; gap: 8px; min-width: 180px; color: var(--secondary); }
+.progress-number { font-size: 42px; line-height: 1.2; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.progress-number small { font-size: 20px; font-weight: 400; }
+.progress-track { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; margin: 6px 0; }
+.progress-track span { display: block; height: 100%; background: var(--accent); }
+.overview-columns { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; }
+.background-panel { margin-top: 32px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; height: fit-content; }
+.background-panel h2 { font-size: 16px; margin-bottom: 12px; }
+.background-panel p { color: var(--secondary); font-size: 13px; }
+.background-panel .source-note { color: var(--muted); font-size: 12px; margin: 16px 0; }
+.background-panel h3 { margin: 24px 0 8px; }
+.background-panel .button { margin-top: 16px; }
+.reference { position: fixed; right: 0; top: 56px; bottom: 0; width: 384px; background: var(--surface); border-left: 1px solid var(--line); z-index: 30; display: flex; flex-direction: column; box-shadow: -8px 0 24px var(--reference-shadow); }
+.reference-heading, .drawer-heading { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--line); }
+.reference-heading h2 { font-size: 16px; }
+.reference-content { padding: 20px; overflow-y: auto; flex: 1; }
+.reference-content h3 { font-size: 18px; margin: 16px 0 24px; }
+.reference-footer { padding: 16px; border-top: 1px solid var(--line); }
+.reference-footer .button { width: 100%; }
+.mobile-menu { display: none !important; }
+.step-footer { position: sticky; bottom: 0; padding: 16px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--canvas); border-top: 1px solid var(--line); z-index: 10; margin-top: 32px; }
+.storage-error { background: var(--error-soft); color: var(--error); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }

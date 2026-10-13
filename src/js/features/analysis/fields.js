@@ -1,0 +1,12 @@
+export const text = (key, label, required = true, extra = {}) => ({ key, label, kind: 'text', required, ...extra });
+export const area = (key, label, required = true, extra = {}) => ({ key, label, kind: 'textarea', required, ...extra });
+export const one = (key, label, options, required = true, extra = {}) => ({ key, label, kind: 'single', options, required, ...extra });
+export const many = (key, label, options, extra = {}) => ({ key, label, kind: 'multi', options, required: false, exclusive: ['尚不确定', '不适用', '没有额外理由', '无额外措施'], ...extra });
+export const refs = (key, label, types, required = false, extra = {}) => ({ key, label, kind: 'relation', types, required, ...extra });
+export const sources = () => refs('sources', '相关来源', ['sources']);
+export const evidence = () => refs('evidence', '支持事实或假设', ['facts', 'assumptions']);
+export const importance = '本步骤的重要性';
+export const impacts = ['生命与健康', '环境', '财产与经济', '权利与自主', '工作与职业', '信任与声誉', '其他', '尚不确定'];
+export const shortActions = ['暂停或限制相关活动', '补充检测或证据', '沟通与风险告知', '临时保护措施', '其他', '不适用'];
+export const longActions = ['工程设计', '审查制度', '信息沟通', '培训与能力建设', '监督问责', '其他', '不适用'];
+export const categories = ['技术与工程', '监管与法律', '文化环境', '其他'];

@@ -1,0 +1,28 @@
+Dear students, 
+
+This is your first home assignment for ENGR4960J (part 1 - oral presentation). After choosing a case for your group in the Feishu document, you will vibe-code a case analysis program with your group members by following a case-analysis procedure introduced in the textbook (Chapter 2 - 10-step case analysis). You will have to make a PPT presentation of your vibe-coded 10-step case analysis program. 
+
+IMPORTANT: you are not designing a program that does the case analysis for you. You are designing a program that can help you to make a case analysis by yourself. Here is a useful technical detail. I would recommend creating an HTML program that you can open on a computer in the classroom. I would also recommend creating a separate PPT that will summarize your findings and running it in parallel on the laptop so you can start by showing the general architecture of your program on the classroom computer and then shift to the main findings in your PPT.
+
+Each group will have around 15 minutes to present. I recommend the following framework for your presentation (but you can choose your own):
+
+Show your HTML program and introduce its general architecture (2-3 minutes);
+Introduce the chosen case and focus on the first 5 steps of the case analysis (due to time constraints, we will focus only on the first 5 steps so all groups can present in one class. However, you will have to design the program for all 10 steps);
+If time allows, you can cover one out of three self-reflection questions. “How did the LLM participate in deciding what your artifact became?”; “What conversational patterns did you find particularly useful while designing your program with AI? How could these conversational patterns be different from your conversations with humans?”; “Find one place in your tool's code or copy where you accepted something the AI generated without checking whether it was accurate or actually what you meant. What is it, and how would you defend it if a professor asked right now?”
+
+Dear students,
+
+This is your home assignment for ENGR4960 (Part 2). Here, you will have to submit
+
+Submit your HTML file with the case analysis program,
+Submit screenshots of all your interactions with AI during your vibe-coding sessions. Keep in mind that to create a good program, you have to go through many iterations during your vibe-coding sessions. To evaluate your final program adequately, I need to see your chat history. Programs created with a small number of iterations will receive a point deduction. 
+
+Submit your case analysis report by following this LaTeX template
+
+Dear students,
+
+With this announcement, I want to clarify a few things related to your first home assignment. It will have two main parts. I will introduce them all at once here so it's easier for you to divide tasks among your group members in advance. There are no specific requirements for how you divide the tasks. In fact, how you divide the work will also show how well you can collaborate and negotiate with each other. Remember, there will be a peer review after this home assignment, and you will also have to indicate your contribution in the template.
+
+Part 1 - After choosing a case for your group in the Feishu document shared with you earlier, you will vibe-code your own case analysis program by following a case-analysis framework introduced in the textbook (Chapter 2 - 10-step case analysis). We will discuss it in more detail during the next class. After that, you will have to make a PPT presentation of your vibe-coded 10-step case analysis program (see more details and guidelines for this part in the description for home assignment 1.1).
+Part 2 - For the second part, you will need to submit your HTML file with the case analysis program together with the case analysis report that follows the LaTeX template uploaded to the home assignment (see more details and guidelines for this part in the description for home assignment 1.2). 
+At the end of class #4, I will show you a prototype of my program so you have a reference point. Please keep in mind that this task is not only about creating programs with AI but also about reflecting on how AI mediates your design practices and moral reasoning. This is why, at the end of the LaTeX template, I added 3 self-reflection questions. I hope they can guide your vision during this project. I also want you to be creative in this task. Although the case analysis framework already has a structure, you can add many elements to it. Please be creative because this course is also about developing your creativity in interacting with AI agents when designing programs. 

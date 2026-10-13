@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="以完整十步框架整理事实、假设与伦理判断的工程伦理分析工作台。">
+  <title>工程伦理工作台 · ENGR4960J</title>
+  <link rel="stylesheet" href="./css/tokens.css">
+  <link rel="stylesheet" href="./css/base.css">
+  <link rel="stylesheet" href="./css/layout.css">
+  <link rel="stylesheet" href="./css/components.css">
+  <link rel="stylesheet" href="./css/responsive.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到分析内容</a>
+  <header id="topbar" class="topbar"></header>
+  <div class="workspace">
+    <aside id="sidebar" class="sidebar" aria-label="分析导航"></aside>
+    <main id="main" class="main" tabindex="-1"></main>
+    <aside id="reference" class="reference" aria-label="关联材料" hidden></aside>
+  </div>
+  <div id="live-status" class="sr-only" aria-live="polite"></div>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <dialog id="nav-dialog" class="nav-dialog" aria-label="分析导航"></dialog>
+  <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title"></dialog>
+  <input id="import-file" type="file" accept=".json,application/json" hidden>
+  <noscript><p class="boot-message">此工作台需要启用 JavaScript。所有分析内容保存在浏览器本地。</p></noscript>
+  <p id="boot-message" class="boot-message">正在打开工作台… 若一直停留在这里，请运行 npm run dev，以本地服务器打开开发版本。</p>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

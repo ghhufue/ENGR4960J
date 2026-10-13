@@ -1,0 +1,58 @@
+@media (min-width: 1440px) {
+  .has-reference .workspace { grid-template-columns: 240px minmax(0,1fr) 320px; }
+  .has-reference .reference { position: sticky; width: 320px; height: calc(100vh - 56px); box-shadow: none; }
+  .has-reference .overview-columns { grid-template-columns: 1fr; }
+}
+@media (min-width: 1024px) and (max-width: 1439px) {
+  :root { --sidebar-width: 224px; }
+  .main { padding: 24px 24px 100px; }
+  .overview-columns { grid-template-columns: 1fr; }
+  .background-panel { margin-top: 0; }
+}
+@media (max-width: 1023px) {
+  .workspace { grid-template-columns: minmax(0,1fr); }
+  .sidebar { display: none; }
+  .mobile-menu { display: inline-grid !important; }
+  .main { padding: 24px 24px 100px; }
+  .brand-divider, .project-name { display: none; }
+  .save-status { font-size: 12px; }
+}
+@media (max-width: 767px) {
+  .topbar { padding: 0 12px; gap: 8px; }
+  .brand-lockup, .topbar-actions { gap: 6px; }
+  .brand-name { font-size: 13px; }
+  .brand-icon, .save-status { display: none; }
+  .topbar-actions .button { font-size: 12px; min-height: 36px; padding: 6px 8px; }
+  .topbar-actions .button .icon { display: none; }
+  .theme-toggle { width: 44px; flex-basis: 44px; }
+  .main { padding: 24px 16px 100px; }
+  .page-heading { margin-bottom: 24px; }
+  h1 { font-size: 24px; }
+  .overview-hero { flex-direction: column; align-items: stretch; padding: 20px; gap: 24px; }
+  .progress-summary { border-top: 1px solid var(--line); padding-top: 20px; }
+  .overview-columns { grid-template-columns: 1fr; gap: 0; }
+  .background-panel { margin-top: 0; }
+  .step-overview-row small { display: none; }
+  .step-overview-row .badge { font-size: 12px; padding: 2px 4px; }
+  .step-overview-row > .icon { display: none; }
+  .button, .icon-button, .choice, .nav-item, .picker-option { min-height: 44px; }
+  .text-button { min-height: 36px; }
+  .list-toolbar { flex-wrap: wrap; gap: 12px; }
+  .search-field { max-width: none; }
+  .step-footer { position: static; flex-wrap: wrap; }
+  .step-footer .inline-actions { flex: 1; justify-content: flex-end; }
+  .record-head { align-items: flex-start; }
+  .record-meta { gap: 4px; }
+  .reference { width: min(100vw, 420px); top: 0; }
+  .check-summary > div { padding: 12px; }
+  .check-summary strong { font-size: 24px; }
+  .storage-error { flex-wrap: wrap; padding: 12px 16px; }
+  .review-recap { flex-wrap: wrap; gap: 4px; }
+  .importance-section > summary .subtle { margin-left: 0; }
+  .paired-fields { grid-template-columns: 1fr; }
+}
+@media (max-width: 374px) {
+  .brand-name { display: none; }
+  .topbar-actions .button { padding: 6px; font-size: 12px; }
+  .topbar-actions .button[data-action="presentation"] { max-width: 64px; white-space: normal; }
+}
