@@ -25,7 +25,7 @@ export function readingNotes(store) {
     }
     if (step.number === 7) for (const issue of store.records('issues').filter(record => record.originStep === 7)) { lines.push(t('复核新增问题：{id} {title}', { id: issue.id, title: issue.data.title || '' }), issue.data.description || ''); }
     for (const [key, label] of [['noGapsReason', '未发现信息缺口的理由'], ['noAssumptionsReason', '无需假设的理由']]) if (state.stepData[step.number]?.[key]) lines.push(`${t(label)}: ${state.stepData[step.number][key]}`);
-    lines.push(t('本步骤的重要性：'), state.notes[step.number] || t('（尚未填写）'));
+    if (state.notes[step.number]) lines.push(t('本步骤的重要性：'), state.notes[step.number]);
   }
   for (const section of [sourceSection, memberSection, iterationSection]) { lines.push('', t(section.title)); for (const record of store.records(section.type)) { lines.push(record.id); append(section.fields, record.data); } }
   REFLECTIONS.forEach((question, index) => lines.push('', t(question), state.reflections[index] || t('（尚未填写）')));

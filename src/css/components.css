@@ -76,13 +76,9 @@
 .tabs button.active { border-bottom-color: var(--accent); color: var(--accent-text); }
 .guidance { margin: 20px 0; border-bottom: 1px solid var(--line); }
 .guidance > summary { display: flex; gap: 8px; color: var(--secondary); font-size: 13px; padding: 12px 0; }
-.guidance > summary:before, .importance-section > summary:before { content: '+'; font-size: 16px; color: var(--muted); }
-.guidance[open] > summary:before, .importance-section[open] > summary:before { content: '−'; }
+.guidance > summary:before { content: '+'; font-size: 16px; color: var(--muted); }
+.guidance[open] > summary:before { content: '−'; }
 .guidance > p, .guidance > div { margin: 0 0 16px; color: var(--secondary); font-size: 14px; }
-.importance-section { padding: 16px 0; border-top: 1px solid var(--line); }
-.importance-section > summary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 15px; font-weight: 600; }
-.importance-section > summary .subtle { margin-left: auto; font-weight: 400; }
-.importance-section > div { padding-top: 12px; }
 .action-menu { position: relative; }
 .action-menu > summary:not(.button) { min-width: 28px; text-align: center; color: var(--muted); }
 .menu-panel { position: absolute; right: 0; top: calc(100% + 6px); display: grid; width: 210px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px; box-shadow: 0 8px 32px var(--menu-shadow); z-index: 40; }
@@ -124,6 +120,12 @@
 .coverage-row strong, .coverage-row small { display: block; }
 .coverage-defer { width: 100%; font-size: 13px; color: var(--secondary); }
 .read-field { margin: 16px 0; }
+.reflection-assist { margin-top: 8px; }
+.reflection-feedback { margin-top: 8px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--accent-soft); }
+.reflection-feedback ul { margin: 8px 0 0; padding-left: 20px; }
+.reflection-feedback li + li { margin-top: 12px; }
+.reflection-feedback small { display: block; color: var(--muted); font-size: 12px; }
+.reflection-feedback li p { margin: 4px 0 0; line-height: 1.6; }
 .read-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 24px; }
 .return-link { margin-bottom: 16px; }
 .toast { position: fixed; right: 24px; bottom: 24px; z-index: 80; max-width: min(440px, calc(100vw - 32px)); background: var(--toast-bg); color: var(--toast-text); padding: 12px 16px; border-radius: 8px; box-shadow: 0 4px 20px var(--toast-shadow); font-size: 13px; }

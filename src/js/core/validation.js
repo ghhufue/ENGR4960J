@@ -26,12 +26,6 @@ export function validateStep(store, number) {
     const records = store.records(section.type).filter(record => !section.filterOrigin || record.originStep === section.filterOrigin);
     for (const record of records) errors.push(...validateFields(store, section.fields, record.data, record.id));
   }
-  if (number !== 4 && !hasValue(store.state.notes[number])) errors.push(error('请填写本步骤的重要性说明。', 'notes', String(number)));
-  if (number >= 5) {
-    const count = textCount(store.state.notes[number]);
-    if (count.chinese) warnings.push('重要性说明含中文：模板的 words 计数口径需人工确认。');
-    else if (count.words < 50 || count.words > 100) errors.push(error('重要性说明应为 50–100 words（当前按英文词数估算）。', 'notes', String(number)));
-  }
   if (number === 1) {
     if (!store.records('issues').some(record => record.originStep === 1)) errors.push(error('请至少登记一个伦理问题。'));
     const groups = store.records('stakeholders').filter(record => record.data.title?.trim() && record.data.impact?.trim());
@@ -106,5 +100,6 @@ export function validateProject(store) {
   sources.filter(record => record.data.cited !== '已在正文引用').forEach(record => errors.push(error(`${record.id} 尚未确认已在报告正文引用。`, record.id, 'cited')));
   if (!store.records('iterations').length) warnings.push('尚未登记开发迭代；请另外保存实际全部 AI 交互截图。');
   warnings.push('APA 7 格式、科学文献适用性、报告排版与 AI 使用边界仍需人工核对。截图索引不包含实际图片。');
+  warnings.push('步骤重要性说明请在课程报告中按模板另行撰写。');
   groups.push({ title: '报告与提交材料', route: 'overview', errors, warnings }); return groups;
 }

@@ -1,6 +1,7 @@
 import { escapeHtml, textCount, fieldVisible } from '../core/utils.js';
 import { t } from '../core/i18n.js';
 import { icon } from './icons.js';
+import { supportsReflection } from '../features/reflection-guidance.js';
 export const TYPE_LABELS = { issues: '问题', stakeholders: '群体', facts: '事实', gaps: '缺口', assumptions: '假设', terms: '术语', principles: '原则', conflicts: '冲突', reviews: '复核发现', solutions: '方案', constraints: '约束', future: '未来情景', sources: '来源', members: '成员', iterations: '迭代' };
 export function fieldId(target, key) { return `field-${target.replace(/[^a-zA-Z0-9-]/g, '-')}-${key}`; }
 export function renderField(store, field, data, target, readOnly = false) {
@@ -42,7 +43,9 @@ export function renderField(store, field, data, target, readOnly = false) {
       ? `<textarea id="${id}" ${attributes} placeholder="${t('写明具体内容与依据')}">${escapeHtml(value || '')}</textarea>${counter}`
       : `<input id="${id}" ${attributes} value="${escapeHtml(value || '')}" ${field.suggestions ? `list="${id}-suggestions"` : ''} placeholder="${t(field.suggestions ? '选择常见候选或直接输入自定义内容' : '请填写')}">${field.suggestions ? `<datalist id="${id}-suggestions">${field.suggestions.map(option => `<option value="${escapeHtml(t(option))}"></option>`).join('')}</datalist>` : ''}`;
   }
-  return `<div class="field" data-field-target="${escapeHtml(target)}" data-field-key="${field.key}"><div class="field-label" id="${id}-label">${['text', 'textarea'].includes(field.kind) ? `<label for="${id}">${label}</label>` : `<span>${label}</span>`}<span class="${field.required ? 'required' : 'optional'}-label">${t(field.required ? '必填' : '可选')}</span></div>${control}</div>`;
+  const reflection = field.kind === 'textarea' && supportsReflection(store, target, field.key)
+    ? `<div class="reflection-assist"><button type="button" class="text-button" data-action="reflect-answer" data-reflect-target="${escapeHtml(target)}" data-reflect-key="${field.key}" aria-label="${escapeHtml(t('反思：{field}', { field: t(field.label) }))}" aria-controls="${id}-reflection" aria-expanded="false">${t('获取引导问题')}</button><div class="reflection-feedback" id="${id}-reflection" role="status" hidden></div></div>` : '';
+  return `<div class="field" data-field-target="${escapeHtml(target)}" data-field-key="${field.key}"><div class="field-label" id="${id}-label">${['text', 'textarea'].includes(field.kind) ? `<label for="${id}">${label}</label>` : `<span>${label}</span>`}<span class="${field.required ? 'required' : 'optional'}-label">${t(field.required ? '必填' : '可选')}</span></div>${control}${reflection}</div>`;
 }
 export function renderFields(store, fields, data, target, readOnly = false) {
   let paired = false;

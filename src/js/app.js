@@ -17,6 +17,7 @@ import { SyncClient } from './core/sync.js';
 import { syncApiBase } from './core/sync-config.js';
 import { requestId } from './core/sync-protocol.js';
 import { openCollaboration, syncLabel } from './ui/collaboration.js';
+import { reflectionQuestions } from './features/reflection-guidance.js';
 let storage;
 try { storage = window.localStorage; } catch { storage = null; }
 setLanguage(readLanguage(storage), document.documentElement);
@@ -64,7 +65,7 @@ function syncPath(element) {
 }
 const validRoutes = new Set(['overview', 'sources', 'reflection', 'checks', ...STEPS.map(step => `step-${step.number}`)]);
 const initialRoute = location.hash.slice(1) || store.state.lastRoute;
-const ui = { route: validRoutes.has(initialRoute) ? initialRoute : 'overview', theme: readTheme(storage), presentation: false, editId: '', referenceId: '', showArchived: false, search: '', category: '', checks: {}, openImportance: false, returnContext: null };
+const ui = { route: validRoutes.has(initialRoute) ? initialRoute : 'overview', theme: readTheme(storage), presentation: false, editId: '', referenceId: '', showArchived: false, search: '', category: '', checks: {}, returnContext: null };
 applyTheme(document.documentElement, ui.theme);
 const sections = [...STEPS.flatMap(step => step.sections), sourceSection, memberSection, iterationSection];
 const sectionFor = type => sections.find(section => section.type === type);
@@ -119,7 +120,7 @@ function renderShell() {
 }
 function navigate(route, { edit = '', keepReturn = false } = {}) {
   if (!validRoutes.has(route)) return;
-  ui.route = route; ui.editId = edit; ui.search = ''; ui.category = ''; ui.openImportance = false; ui.showArchived = edit ? Boolean(store.get(edit)?.archived) : false;
+  ui.route = route; ui.editId = edit; ui.search = ''; ui.category = ''; ui.showArchived = edit ? Boolean(store.get(edit)?.archived) : false;
   if (!keepReturn) ui.returnContext = null;
   if (byId('nav-dialog').open) byId('nav-dialog').close();
   store.state.lastRoute = route; store.save();
@@ -127,7 +128,12 @@ function navigate(route, { edit = '', keepReturn = false } = {}) {
   renderShell(); renderMain(); window.scrollTo(0, 0); byId('main').focus({ preventScroll: true });
 }
 function routeFor(record) { return record.type === 'sources' ? 'sources' : record.type === 'iterations' ? 'reflection' : record.type === 'members' ? 'overview' : `step-${record.type === 'issues' && record.originStep === 7 ? 7 : TYPE_STEPS[record.type]}`; }
-function invalidateChecks() { ui.checks = {}; byId('main').querySelectorAll('.check-result').forEach(element => element.remove()); byId('main').querySelectorAll('[data-action="review-step"]').forEach(element => element.remove()); }
+function invalidateChecks() {
+  ui.checks = {};
+  byId('main').querySelectorAll('.check-result, [data-action="review-step"]').forEach(element => element.remove());
+  byId('main').querySelectorAll('.reflection-feedback').forEach(element => { element.hidden = true; element.replaceChildren(); });
+  byId('main').querySelectorAll('[data-action="reflect-answer"]').forEach(element => element.setAttribute('aria-expanded', 'false'));
+}
 function fieldDefinition(target, key) {
   if (target === 'focus') return getStep(2).fields.find(field => field.key === key);
   if (target.startsWith('step:')) return getStep(target.slice(5))?.fields?.find(field => field.key === key);
@@ -159,9 +165,8 @@ async function addRecord(type, origin, data = {}, parent = null) {
   return record;
 }
 function locate(target, field, route) {
-  const record = store.get(target); ui.openImportance = target === 'notes';
+  const record = store.get(target);
   navigate(record ? routeFor(record) : target === 'reflections' ? 'reflection' : target === 'meta' ? 'overview' : target.startsWith('step:') ? `step-${target.slice(5)}` : target === 'focus' || target === 'focusSelect' ? 'step-2' : route || ui.route, { edit: record?.id || '' });
-  if (target === 'notes') { ui.openImportance = true; renderMain(); }
   const element = byId(fieldId(target, field)) || byId(`${fieldId(target, field)}-0`) || byId(target) || byId(`record-${target}`);
   if (element) { for (const details of byId('main').querySelectorAll('details')) if (details.contains(element)) details.open = true; element.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' }); (element.querySelector?.('input,textarea,button') || element).focus?.({ preventScroll: true }); }
 }
@@ -182,6 +187,13 @@ document.addEventListener('click', async event => {
   const { action, id, type, route, step: stepNumber } = button.dataset;
   try {
     if (action === 'navigate') navigate(route);
+    if (action === 'reflect-answer') {
+      const questions = reflectionQuestions(store, button.dataset.reflectTarget, button.dataset.reflectKey), panel = byId(button.getAttribute('aria-controls'));
+      if (panel && questions.length) {
+        panel.innerHTML = `<p class="subtle">${t('根据填写情况、关联记录和关键词提供固定提示，不评判分析质量。')}</p><ul>${questions.map(item => `<li><small>${escapeHtml(t(item.condition))}</small><p>${escapeHtml(t(item.question))}</p></li>`).join('')}</ul>`;
+        panel.hidden = false; button.setAttribute('aria-expanded', 'true');
+      }
+    }
     if (action === 'collaboration') openCollaboration(sync, { onChange: rememberConnection, onError: error => notice(error.message, true) });
     if (action === 'add') await addRecord(type, Number(button.dataset.origin) || (ui.route === 'step-7' && type === 'issues' ? 7 : undefined));
     if (action === 'edit') { const record = store.get(id); if (record.archived) { ui.referenceId = id; renderReference(); return; } ui.editId = ui.editId === id ? '' : id; renderMain(true); }

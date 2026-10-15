@@ -1,5 +1,7 @@
 // Chinese source strings are canonical UI keys, not stored translations of user content.
+import { REFLECTION_EN } from './reflection-en.js';
 export const EN = {
+  ...REFLECTION_EN,
   '连接协作': 'Connect collaboration', '正在连接': 'Connecting', '待同步': 'Pending sync', '同步中': 'Syncing', '已同步': 'Synced',
   '待人工裁定': 'Awaiting decision', '离线 · 已保存本地': 'Offline · Saved locally', '提交被拒绝 · 草稿已保留': 'Submission rejected · Draft retained',
   '小组协作': 'Team collaboration', '关闭': 'Close', '项目编号': 'Project ID', '成员访问令牌': 'Member access token', '连接项目': 'Connect project',
