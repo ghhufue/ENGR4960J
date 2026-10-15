@@ -1,0 +1,5 @@
+.collaboration-dialog { width: min(900px, calc(100vw - 32px)); max-height: 88vh; overflow: auto; }
+.collaboration-dialog label { display: block; margin-block: 12px; }
+.collaboration-dialog input { display: block; width: 100%; margin-top: 6px; }
+.sync-conflict { padding: 16px; margin-block: 12px; border: 1px solid var(--line); border-radius: 10px; }
+.sync-conflict pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; padding: 12px; background: var(--surface); color: var(--text); }

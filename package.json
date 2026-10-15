@@ -5,9 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "server": "node server/index.mjs",
+    "server:public": "node scripts/start-public-server.mjs",
+    "sync:members": "node scripts/init-sync-members.mjs",
+    "sync:backup": "node server/backup.mjs",
+    "test:sync-browser": "node scripts/sync-browser-check.mjs",
     "check": "node scripts/check.mjs",
     "test": "node --test tests/*.test.mjs",
     "build": "node scripts/build.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": { "node": ">=24" }
 }

@@ -1,5 +1,17 @@
 // Chinese source strings are canonical UI keys, not stored translations of user content.
 export const EN = {
+  '连接协作': 'Connect collaboration', '正在连接': 'Connecting', '待同步': 'Pending sync', '同步中': 'Syncing', '已同步': 'Synced',
+  '待人工裁定': 'Awaiting decision', '离线 · 已保存本地': 'Offline · Saved locally', '提交被拒绝 · 草稿已保留': 'Submission rejected · Draft retained',
+  '小组协作': 'Team collaboration', '关闭': 'Close', '项目编号': 'Project ID', '成员访问令牌': 'Member access token', '连接项目': 'Connect project',
+  '本机开发可留空；远程协作请使用管理员分配的令牌。连接前的离线项目保留在原本地存储。': 'Leave blank for local development; use your assigned token on a network. Your offline project stays in its original local storage.',
+  '数组采用去重并集，取消勾选不会自动删除团队已有项。': 'Lists merge by union. Unchecking an item does not remove it from the team data.',
+  '立即同步': 'Sync now', '修改历史': 'Change history', '断开连接': 'Disconnect', '导出并放弃失败提交': 'Export and discard rejected submission',
+  '修改前快照': 'Before editing', '后端当前内容': 'Current server value', '提交的新内容': 'Submitted value',
+  '保留后端内容': 'Keep server value', '采用提交内容': 'Accept submitted value', '等待管理成员裁定。': 'Waiting for an administrator decision.',
+  '没有待裁定冲突。': 'No pending conflicts.', '最近 30 次提交': 'Latest 30 submissions', '导出此版本': 'Export version', '恢复此版本': 'Restore version',
+  '字段不存在': 'Field absent', '将此历史内容恢复为一个新版本？当前内容会先导出备份。': 'Restore this snapshot as a new version? The current content will be exported first.',
+  '本地草稿缓存失败，请导出备份。': 'The local draft cache failed. Export a backup.',
+  '协作工作方式': 'Collaborative workflow', '已提交内容保存在小组后端并同步给组员；未提交草稿保存在当前浏览器。截图文件需另外整理。': 'Submitted content is saved to the team server and shared with members. Unsubmitted drafts stay in this browser. Manage screenshot files separately.',
   '工程伦理分析笔记（人工输入原样整理）': 'Engineering ethics analysis notes (original team input)',
   '小组：{group}': 'Group: {group}', '报告日期：{date}': 'Report date: {date}', '导出时间：{time}': 'Exported: {time}',
   '焦点：{id} {title}': 'Focus: {id} {title}', '复核新增问题：{id} {title}': 'Issue found during review: {id} {title}',

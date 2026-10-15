@@ -47,7 +47,7 @@ export function parseBackup(text) {
 }
 export class Store {
   constructor(storage = null) {
-    this.storage = storage; this.state = freshState(); this.saveStatus = 'idle'; this.savedAt = ''; this.error = ''; this.listeners = new Set();
+    this.storage = storage; this.storageKey = STORAGE_KEY; this.state = freshState(); this.saveStatus = 'idle'; this.savedAt = ''; this.error = ''; this.listeners = new Set();
     try { this.recoveryRaw = storage?.getItem(STORAGE_KEY); if (this.recoveryRaw) { this.state = parseBackup(this.recoveryRaw); this.savedAt = this.state.updatedAt; this.saveStatus = 'saved'; this.recoveryRaw = ''; } } catch (error) { this.error = `无法恢复本地内容：${error.message}。原存储未覆盖，请先导出或检查。`; this.saveStatus = 'failed'; this.recoveryBlocked = true; }
   }
   subscribe(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
@@ -61,7 +61,7 @@ export class Store {
     try {
       if (this.recoveryBlocked) throw new Error('原本地内容恢复失败，已停止覆盖；导入有效备份或新建项目后再保存');
       if (!this.storage) throw new Error('浏览器存储不可用');
-      this.storage.setItem(STORAGE_KEY, JSON.stringify(this.state)); this.saveStatus = 'saved'; this.savedAt = this.state.updatedAt; this.error = '';
+      this.storage.setItem(this.storageKey, JSON.stringify(this.state)); this.saveStatus = 'saved'; this.savedAt = this.state.updatedAt; this.error = '';
     } catch (error) { this.saveStatus = 'failed'; this.error = `保存失败：${error.message}。请导出项目备份，当前内容仍在页面中。`; }
     this.emit();
   }

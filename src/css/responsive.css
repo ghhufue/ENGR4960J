@@ -17,6 +17,10 @@
   .brand-divider, .project-name { display: none; }
   .save-status { font-size: 12px; }
   html[lang="en"] .brand-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+  #collaboration-toggle .action-label { display: none; }
+  #collaboration-toggle { width: 44px; min-width: 44px; padding: 10px; }
+  #collaboration-toggle .icon { display: inline-block; }
+  .brand-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }
 @media (max-width: 767px) {
   .topbar { padding: 0 12px; gap: 8px; }

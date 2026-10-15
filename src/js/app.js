@@ -13,10 +13,50 @@ import { readTheme, applyTheme, saveTheme } from './core/theme.js';
 import { renderThemeToggle } from './ui/theme-control.js';
 import { t, getLocale, readLanguage, setLanguage, saveLanguage } from './core/i18n.js';
 import { renderOverview, renderStep, renderSources, renderReflection, renderChecks, renderTopbar, renderNav } from './ui/pages.js';
+import { SyncClient } from './core/sync.js';
+import { syncApiBase } from './core/sync-config.js';
+import { requestId } from './core/sync-protocol.js';
+import { openCollaboration, syncLabel } from './ui/collaboration.js';
 let storage;
 try { storage = window.localStorage; } catch { storage = null; }
 setLanguage(readLanguage(storage), document.documentElement);
 const store = new Store(storage);
+let clientId;
+try { clientId = sessionStorage.getItem('engr4960j.sync.client') || requestId(); sessionStorage.setItem('engr4960j.sync.client', clientId); } catch { clientId = requestId(); }
+let remoteRenderPending = false;
+let remoteRenderTimer;
+function scheduleRemoteRender() {
+  clearTimeout(remoteRenderTimer);
+  remoteRenderTimer = setTimeout(() => {
+    if (!remoteRenderPending) return;
+    if (document.activeElement?.matches('[data-target]') || ui.composing) { scheduleRemoteRender(); return; }
+    remoteRenderPending = false; renderShell(); renderMain(true); renderReference();
+  }, 100);
+}
+const sync = new SyncClient(store, {
+  apiBase: syncApiBase(),
+  clientId,
+  onStatus: () => {
+    const button = document.getElementById('collaboration-toggle');
+    if (button) { button.querySelector('.action-label').textContent = syncLabel(sync); button.setAttribute('aria-label', syncLabel(sync)); button.title = sync.error || syncLabel(sync); }
+    const main = document.getElementById('main'); if (main) main.inert = sync.status === 'connecting';
+  },
+  onState: () => {
+    invalidateChecks();
+    if (document.activeElement?.matches('[data-target]') || ui.composing) { remoteRenderPending = true; scheduleRemoteRender(); }
+    else { renderShell(); renderMain(true); renderReference(); remoteRenderPending = false; }
+  }
+});
+function rememberConnection() { try { if (sync.enabled) sessionStorage.setItem('engr4960j.sync.connection', JSON.stringify({ projectId: sync.projectId, token: sync.token })); else sessionStorage.removeItem('engr4960j.sync.connection'); } catch {} }
+function syncPath(element) {
+  const { target, key } = element.dataset;
+  if (element.dataset.kind === 'focus') return ['focusId'];
+  if (!target || !key) return null;
+  if (target === 'focus') return ['focusAnalyses', store.state.focusId, key];
+  if (['meta', 'notes', 'reflections'].includes(target)) return [target, key];
+  if (target.startsWith('step:')) return ['stepData', target.slice(5), key];
+  return ['records', target, 'data', key];
+}
 const validRoutes = new Set(['overview', 'sources', 'reflection', 'checks', ...STEPS.map(step => `step-${step.number}`)]);
 const initialRoute = location.hash.slice(1) || store.state.lastRoute;
 const ui = { route: validRoutes.has(initialRoute) ? initialRoute : 'overview', theme: readTheme(storage), presentation: false, editId: '', referenceId: '', showArchived: false, search: '', category: '', checks: {}, openImportance: false, returnContext: null };
@@ -45,6 +85,7 @@ function renderReference() {
   aside.innerHTML = `<div class="reference-heading"><h2 tabindex="-1">${t('关联材料')}</h2><button class="icon-button" data-action="close-reference" aria-label="${t('关闭关联材料')}">${icon('close')}</button></div><div class="reference-content"><div class="record-meta">${typeBadge(record.type)}<span class="record-id">${record.id}</span>${record.archived ? `<span class="badge neutral">${t('已归档')}</span>` : ''}</div><h3>${escapeHtml(record.data.title || t('尚未命名'))}</h3>${renderFields(store, section?.fields.filter(field => field.key !== 'title') || [], record.data, record.id, true)}${url ? `<a class="button secondary" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${t('打开来源链接')} ${icon('arrow')}</a>` : ''}<p class="subtle">${escapeHtml(t('版本 {version} · {status}', { version: record.version, status: t(record.data.verification || '由组员自行核对') }))}</p></div><div class="reference-footer"><button class="button secondary" data-action="jump-record" data-id="${record.id}">${t(record.archived || ui.presentation ? '到原位置查看' : '到原位置修改')} ${icon('arrow')}</button></div>`;
 }
 function renderMain(preserve = false) {
+  ui.collaborating = sync.enabled;
   const active = document.activeElement; const activeId = preserve ? active?.id : ''; const cursor = preserve && active?.selectionStart; const scroll = window.scrollY;
   const openDetails = preserve ? [...byId('main').querySelectorAll('details[open][id]')].map(element => element.id) : [];
   let html;
@@ -64,6 +105,7 @@ function renderMain(preserve = false) {
 }
 function renderShell() {
   byId('topbar').innerHTML = renderTopbar(store, ui); byId('sidebar').innerHTML = renderNav(store, ui); byId('nav-dialog').innerHTML = renderNav(store, ui, true);
+  const collaborationButton = document.createElement('button'); collaborationButton.id = 'collaboration-toggle'; collaborationButton.className = 'button secondary'; collaborationButton.dataset.action = 'collaboration'; collaborationButton.setAttribute('aria-label', syncLabel(sync)); collaborationButton.innerHTML = `${icon('layers')} <span class="action-label">${escapeHtml(syncLabel(sync))}</span>`; byId('topbar').querySelector('.topbar-actions').prepend(collaborationButton);
   document.querySelector('.skip-link').textContent = t('跳到分析内容');
   for (const id of ['sidebar', 'nav-dialog']) byId(id).setAttribute('aria-label', t('分析导航'));
   byId('reference').setAttribute('aria-label', t('关联材料'));
@@ -104,8 +146,8 @@ function confirmDialog(title, body, label, callback, danger = false) {
   dialog.innerHTML = `<div class="dialog-body"><h2 id="confirm-title">${escapeHtml(t(title))}</h2><p>${escapeHtml(t(body))}</p><div class="dialog-actions"><button class="button secondary" data-action="cancel-confirm">${t('取消')}</button><button class="button ${danger ? 'danger' : 'primary'}" data-action="confirm">${escapeHtml(t(label))}</button></div></div>`;
   dialog.showModal(); dialog.querySelector('[data-action="cancel-confirm"]').focus();
 }
-function addRecord(type, origin, data = {}, parent = null) {
-  const record = store.add(type, origin || TYPE_STEPS[type] || 0, data); invalidateChecks();
+async function addRecord(type, origin, data = {}, parent = null) {
+  const record = sync.enabled ? await sync.createRecord(type, origin || TYPE_STEPS[type] || 0, data) : store.add(type, origin || TYPE_STEPS[type] || 0, data); invalidateChecks();
   if (parent) { const values = targetData(parent.target)[parent.key] || []; store.setValue(parent.target, parent.key, parent.single ? [record.id] : [...new Set([...values, record.id])]); ui.returnContext = { route: ui.route, edit: parent.target }; }
   navigate(routeFor(record), { edit: record.id, keepReturn: Boolean(parent) });
   setTimeout(() => byId(`record-${record.id}`)?.querySelector('input,textarea')?.focus(), 0);
@@ -130,12 +172,13 @@ document.addEventListener('change', event => {
   if (element.dataset.kind === 'focus') { store.setFocus(element.value); invalidateChecks(); renderMain(true); return; }
   if (element.matches('[data-target]') && ['checkbox', 'radio'].includes(element.type)) changeField(element);
 });
-document.addEventListener('click', event => {
+document.addEventListener('click', async event => {
   const button = event.target.closest('[data-action]'); if (!button) return;
   const { action, id, type, route, step: stepNumber } = button.dataset;
   try {
     if (action === 'navigate') navigate(route);
-    if (action === 'add') addRecord(type, Number(button.dataset.origin) || (ui.route === 'step-7' && type === 'issues' ? 7 : undefined));
+    if (action === 'collaboration') openCollaboration(sync, { onChange: rememberConnection, onError: error => notice(error.message, true) });
+    if (action === 'add') await addRecord(type, Number(button.dataset.origin) || (ui.route === 'step-7' && type === 'issues' ? 7 : undefined));
     if (action === 'edit') { const record = store.get(id); if (record.archived) { ui.referenceId = id; renderReference(); return; } ui.editId = ui.editId === id ? '' : id; renderMain(true); }
     if (action === 'archive' || action === 'restore') { store.archive(id, action === 'archive'); invalidateChecks(); ui.editId = ''; renderShell(); renderMain(true); renderReference(); notice(action === 'archive' ? '记录已归档，可在“包含归档”中恢复。' : '记录已恢复，原有分析关联继续保留。'); }
     if (action === 'delete') confirmDialog('永久删除记录？', '已归档记录将永久删除。有引用或焦点历史的记录需要先处理关联。', '永久删除', () => { store.remove(id); invalidateChecks(); renderShell(); renderMain(true); renderReference(); }, true);
@@ -144,24 +187,25 @@ document.addEventListener('click', event => {
     if (action === 'close-reference') { ui.referenceId = ''; renderReference(); if (previousReferenceFocus?.isConnected) previousReferenceFocus.focus(); }
     if (action === 'jump-record') { const record = store.get(id); ui.referenceId = ''; renderReference(); navigate(routeFor(record), { edit: record.archived || ui.presentation ? '' : id }); if (record.archived) { ui.showArchived = true; renderMain(); } byId(`record-${id}`)?.scrollIntoView({ block: 'center' }); }
     if (action === 'unrelate') { const { target, key } = button.dataset; store.setValue(target, key, (targetData(target)[key] || []).filter(value => value !== id)); invalidateChecks(); renderMain(true); }
-    if (action === 'new-related') addRecord(type, undefined, {}, { target: button.dataset.parent, key: button.dataset.key, single: button.dataset.single === 'true' });
+    if (action === 'new-related') await addRecord(type, undefined, {}, { target: button.dataset.parent, key: button.dataset.key, single: button.dataset.single === 'true' });
     if (action === 'return-context') { const context = ui.returnContext; navigate(context.route, { edit: store.get(context.edit) ? context.edit : '' }); }
-    if (action === 'assume-gap') addRecord('assumptions', 4, { gaps: [id] });
-    if (action === 'resolve-gap') { const gap = store.get(id); addRecord('facts', 3, { title: gap.data.title || '' }, { target: id, key: 'resolvedFacts' }); notice('已创建待填写事实。填入证据后，返回缺口将调查进展改为“已补充”。'); }
-    if (action === 'solve-issue') addRecord('solutions', 8, { issues: [id] });
+    if (action === 'assume-gap') await addRecord('assumptions', 4, { gaps: [id] });
+    if (action === 'resolve-gap') { const gap = store.get(id); await addRecord('facts', 3, { title: gap.data.title || '' }, { target: id, key: 'resolvedFacts' }); notice('已创建待填写事实。填入证据后，返回缺口将调查进展改为“已补充”。'); }
+    if (action === 'solve-issue') await addRecord('solutions', 8, { issues: [id] });
     if (action === 'review-result') {
       const review = store.get(id); const kinds = { '新问题': 'issues', '新事实': 'facts', '新缺口': 'gaps' }; const resultType = kinds[review.data.kind];
       if (!resultType) { notice('此发现应修订已有记录，请通过关联记录进入原步骤。'); return; }
       const existing = (review.data.results || []).map(value => store.get(value)).find(record => record?.type === resultType);
       if (existing) { navigate(routeFor(existing), { edit: existing.id }); return; }
-      const record = store.add(resultType, resultType === 'issues' ? 7 : 3, { title: review.data.title || '', description: review.data.description || '' }); store.update(id, 'results', [...(review.data.results || []), record.id]); invalidateChecks(); navigate(routeFor(record), { edit: record.id });
+      const data = { title: review.data.title || '', description: review.data.description || '' };
+      const record = sync.enabled ? await sync.createRecord(resultType, resultType === 'issues' ? 7 : 3, data) : store.add(resultType, resultType === 'issues' ? 7 : 3, data); store.update(id, 'results', [...(store.get(id).data.results || []), record.id]); invalidateChecks(); navigate(routeFor(record), { edit: record.id });
     }
     if (action === 'check-step' || action === 'review-step') { const number = Number(stepNumber); const result = validateStep(store, number); ui.checks[number] = result; if (action === 'review-step' && !result.errors.length) { markReviewed(store, number); notice('已记录人工复核确认；所引用材料改变后会提示待复核。'); } renderShell(); renderMain(true); if (result.errors.length) byId('main').querySelector('.check-result')?.scrollIntoView({ block: 'start' }); }
     if (action === 'locate') locate(button.dataset.target, button.dataset.field, route);
     if (action === 'backup') { backup(store); notice('项目备份已交给浏览器下载。实际截图需另行备份。'); }
     if (action === 'export-notes') { exportNotes(store); notice('已导出人工输入笔记，不包含自动撰写的报告正文。'); }
     if (action === 'import') { byId('import-file').value = ''; byId('import-file').click(); }
-    if (action === 'new-project') confirmDialog('新建案例工作区？', '将先下载当前项目备份，再新建空白案例。实际截图文件不包含在备份中。', '备份并新建', () => { backup(store); const state = freshState(); state.meta.title = t('未命名案例'); store.replace(state); ui.checks = {}; ui.referenceId = ''; renderReference(); navigate('overview'); });
+    if (action === 'new-project') confirmDialog('新建案例工作区？', '将先下载当前项目备份，再新建空白案例。实际截图文件不包含在备份中。', '备份并新建', async () => { backup(store); const state = freshState(); state.meta.title = t('未命名案例'); if (sync.enabled) await sync.replace(state); else store.replace(state); ui.checks = {}; ui.referenceId = ''; renderReference(); navigate('overview'); });
     if (action === 'presentation') { ui.presentation = !ui.presentation; ui.editId = ''; renderShell(); renderMain(true); renderReference(); }
     if (action === 'theme') {
       ui.theme = applyTheme(document.documentElement, ui.theme === 'dark' ? 'light' : 'dark');
@@ -184,18 +228,25 @@ document.addEventListener('click', event => {
     if (action === 'menu') { byId('nav-dialog').innerHTML = renderNav(store, ui, true); byId('nav-dialog').showModal(); }
     if (action === 'close-nav') byId('nav-dialog').close();
     if (action === 'cancel-confirm') { byId('confirm-dialog').close(); confirmCallback = null; }
-    if (action === 'confirm') { const callback = confirmCallback; confirmCallback = null; byId('confirm-dialog').close(); callback?.(); }
+    if (action === 'confirm') { const callback = confirmCallback; confirmCallback = null; byId('confirm-dialog').close(); await callback?.(); }
   } catch (error) { notice(error.message, true); }
 });
 byId('import-file').addEventListener('change', async event => {
   const file = event.target.files[0]; if (!file) return;
   try { if (file.size > 5 * 1024 * 1024) throw new Error('备份超过 5 MB。'); const state = parseBackup(await file.text());
-    confirmDialog('导入并替换当前项目？', `案例：${state.meta.title}；${state.records.length} 条记录。会先下载当前项目备份，再导入这份内容。`, '备份并导入', () => { backup(store); store.replace(state); ui.checks = {}; ui.referenceId = ''; renderReference(); navigate('overview'); notice('备份已导入。请在完成检查中核对关联与待复核事项。'); });
+    confirmDialog('导入并替换当前项目？', `案例：${state.meta.title}；${state.records.length} 条记录。会先下载当前项目备份，再导入这份内容。`, '备份并导入', async () => { backup(store); if (sync.enabled) await sync.replace(state); else store.replace(state); ui.checks = {}; ui.referenceId = ''; renderReference(); navigate('overview'); notice('备份已导入。请在完成检查中核对关联与待复核事项。'); });
   } catch (error) { notice(`导入失败：${error.message} 当前工作未被替换。`, true); }
 });
 document.addEventListener('keydown', event => { if (event.key === 'Escape' && ui.referenceId && !byId('confirm-dialog').open && !byId('nav-dialog').open) { ui.referenceId = ''; renderReference(); previousReferenceFocus?.focus?.(); } });
 window.addEventListener('hashchange', () => { const route = location.hash.slice(1); if (validRoutes.has(route)) navigate(route); });
-window.addEventListener('pagehide', () => store.flush());
-window.addEventListener('beforeunload', event => { store.flush(); if (store.saveStatus === 'failed' && store.state.records.length) { event.preventDefault(); event.returnValue = ''; } });
+document.addEventListener('focusin', event => { const path = syncPath(event.target); if (path) { event.target.syncEditPath = path; sync.beginField(path); } });
+document.addEventListener('focusout', event => { if (event.target.syncEditPath) sync.endField(event.target.syncEditPath); if (remoteRenderPending) scheduleRemoteRender(); });
+document.addEventListener('compositionstart', () => { ui.composing = true; });
+document.addEventListener('compositionend', () => { ui.composing = false; if (remoteRenderPending) scheduleRemoteRender(); });
+window.addEventListener('focus', () => { if (sync.enabled) sync.poll().catch(() => {}); });
+window.addEventListener('online', () => { if (sync.enabled) sync.poll().catch(() => {}); });
+window.addEventListener('pagehide', () => { store.flush(); if (sync.enabled) sync.persist(); });
+window.addEventListener('beforeunload', event => { store.flush(); if (sync.enabled) sync.persist(); if (sync.inFlight || sync.queue.size || store.saveStatus === 'failed' && store.state.records.length) { event.preventDefault(); event.returnValue = ''; } });
 store.subscribe(() => { saveIndicator(); byId('sidebar').innerHTML = renderNav(store, ui); });
 renderShell(); renderMain(); renderReference(); byId('boot-message').remove();
+try { const connection = JSON.parse(sessionStorage.getItem('engr4960j.sync.connection') || 'null'); if (connection) sync.connect(connection).catch(error => notice(error.message, true)); } catch {}
