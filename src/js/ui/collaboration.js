@@ -1,6 +1,7 @@
 import { escapeHtml, download } from '../core/utils.js';
 import { t } from '../core/i18n.js';
 import { readField } from '../core/sync-protocol.js';
+import { readSyncLogin, saveSyncLogin, clearSyncLogin } from '../core/sync-login.js';
 export function syncLabel(sync) {
   const labels = { disconnected: '连接协作', connecting: '正在连接', pending: '待同步', syncing: '同步中', synced: '已同步', conflict: '待人工裁定', offline: '离线 · 已保存本地', blocked: '提交被拒绝 · 草稿已保留' };
   return t(labels[sync.status] || '连接协作');
@@ -11,14 +12,23 @@ export function openCollaboration(sync, { onChange = () => {}, onError = () => {
   if (!dialog) { dialog = document.createElement('dialog'); dialog.id = 'collaboration-dialog'; dialog.className = 'collaboration-dialog'; document.body.append(dialog); }
   const render = () => {
     dialog.innerHTML = `<div class="dialog-body"><div class="section-heading"><h2>${t('小组协作')}</h2><button class="button secondary" data-sync="close">${t('关闭')}</button></div><p>${escapeHtml(syncLabel(sync))}${sync.enabled ? ` · ${escapeHtml(sync.actor.name)} · v${sync.revision}` : ''}</p>${sync.error ? `<p role="alert">${escapeHtml(sync.error)}</p>` : ''}${sync.cacheError ? `<p role="alert">${t('本地草稿缓存失败，请导出备份。')}</p>` : ''}`;
-    if (!sync.enabled) dialog.querySelector('.dialog-body').insertAdjacentHTML('beforeend', `<form id="sync-connect"><label>${t('项目编号')}<input name="project" value="default" required pattern="[\\w-]{1,64}"></label><label>${t('成员访问令牌')}<input name="token" type="password" autocomplete="off"></label><p class="subtle">${t('本机开发可留空；远程协作请使用管理员分配的令牌。连接前的离线项目保留在原本地存储。')}</p><button class="button primary" type="submit">${t('连接项目')}</button></form>`);
+    if (!sync.enabled) {
+      dialog.querySelector('.dialog-body').insertAdjacentHTML('beforeend', `<form id="sync-connect"><label>${t('项目编号')}<input name="project" value="default" required pattern="[\\w-]{1,64}"></label><label>${t('成员访问令牌')}<input name="token" type="password" autocomplete="off"></label><p class="subtle">${t('本机开发可留空；远程协作请使用管理员分配的令牌。连接前的离线项目保留在原本地存储。')}</p><p class="subtle">${t('此浏览器会记住上次输入的项目编号和令牌。')}</p><div class="inline-actions"><button class="button primary" type="submit">${t('连接项目')}</button><button class="button secondary" type="button" data-sync="forget-login">${t('清除记住的登录')}</button></div></form>`);
+      const remembered = readSyncLogin(sync.storage, sync.apiBase), form = dialog.querySelector('#sync-connect');
+      form.elements.project.value = remembered.projectId; form.elements.token.value = remembered.token;
+    }
     else {
       dialog.querySelector('.dialog-body').insertAdjacentHTML('beforeend', `<p class="info-note">${t('数组采用去重并集，取消勾选不会自动删除团队已有项。')}</p><div class="inline-actions"><button class="button secondary" data-sync="refresh">${t('立即同步')}</button><button class="button secondary" data-sync="history">${t('修改历史')}</button><button class="button secondary" data-sync="disconnect">${t('断开连接')}</button>${sync.status === 'blocked' ? `<button class="button secondary" data-sync="discard">${t('导出并放弃失败提交')}</button>` : ''}</div><h3>${t('待人工裁定')}</h3>${sync.conflicts.length ? sync.conflicts.map(conflict => `<section class="sync-conflict" data-conflict="${conflict.id}"><strong>${escapeHtml(conflict.path.join(' / '))}</strong><p>${escapeHtml(conflict.actorName)} · ${escapeHtml(conflict.createdAt)}</p><label>${t('修改前快照')}<pre>${escapeHtml(valueText(conflict.base))}</pre></label><label>${t('后端当前内容')}<pre>${escapeHtml(valueText(readField(sync.baseState, conflict.path)))}</pre></label><label>${t('提交的新内容')}<pre>${escapeHtml(valueText(conflict.proposed))}</pre></label>${sync.actor.admin ? `<div class="inline-actions"><button class="button secondary" data-sync="current">${t('保留后端内容')}</button><button class="button primary" data-sync="proposed">${t('采用提交内容')}</button></div>` : `<p>${t('等待管理成员裁定。')}</p>`}</section>`).join('') : `<p>${t('没有待裁定冲突。')}</p>`}<div id="sync-history"></div>`);
     }
   };
   render(); if (!dialog.open) dialog.showModal();
+  dialog.oninput = event => {
+    const form = event.target.closest('#sync-connect');
+    if (form) saveSyncLogin(sync.storage, { projectId: form.elements.project.value, token: form.elements.token.value }, sync.apiBase);
+  };
   dialog.onsubmit = async event => {
     event.preventDefault(); const form = event.target, button = form.querySelector('button'); button.disabled = true;
+    if (!saveSyncLogin(sync.storage, { projectId: form.elements.project.value, token: form.elements.token.value }, sync.apiBase)) onError(new Error(t('浏览器无法保存登录信息，下次可能需要重新输入。')));
     try { await sync.connect({ projectId: form.elements.project.value, token: form.elements.token.value }); onChange(sync); render(); } catch (error) { onError(error); button.disabled = false; }
   };
   dialog.onclick = async event => {
@@ -26,6 +36,7 @@ export function openCollaboration(sync, { onChange = () => {}, onError = () => {
     const action = button.dataset.sync; if (action === 'close') { dialog.close(); return; }
     button.disabled = true;
     try {
+      if (action === 'forget-login') { if (!clearSyncLogin(sync.storage, sync.apiBase)) throw new Error(t('浏览器无法清除登录信息。')); onChange(sync); }
       if (action === 'refresh') { await sync.flush(); await sync.poll(); }
       if (action === 'disconnect') { sync.disconnect(); onChange(sync); }
       if (action === 'discard') { download(JSON.stringify(sync.store.state, null, 2), '未确认的协作草稿.json'); sync.discardFailed(); }

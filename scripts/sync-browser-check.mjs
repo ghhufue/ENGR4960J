@@ -11,7 +11,8 @@ for (const candidate of [process.env.BROWSER_EXECUTABLE, 'C:/Program Files/Googl
 if (!executable) throw new Error('Chromium executable required.');
 const frontend = process.env.SYNC_BROWSER_FRONTEND;
 const tokenA = randomBytes(32).toString('hex'), tokenB = randomBytes(32).toString('hex');
-const options = { database: frontend ? resolve(temp, 'verification.sqlite') : ':memory:', members: [{ id: 'a', name: '甲', token: tokenA, admin: true }, { id: 'b', name: '乙', token: tokenB }], allowedOrigins: frontend ? [new URL(frontend).origin] : [] };
+const sharedCode = 'browser-shared-code';
+const options = { database: frontend ? resolve(temp, 'verification.sqlite') : ':memory:', members: [{ id: 'a', name: '甲', token: tokenA, admin: true }, { id: 'b', name: '乙', token: tokenB, accessCode: sharedCode }], allowedOrigins: frontend ? [new URL(frontend).origin] : [] };
 const apiRequests = [], browserFailures = [];
 async function startServer() {
   const serverApp = await createSyncServer(options);
@@ -29,7 +30,7 @@ async function attach(page) {
   socket.addEventListener('message', event => { const message = JSON.parse(event.data); if (message.id) { const entry = pending.get(message.id); pending.delete(message.id); message.error ? entry.reject(new Error(message.error.message)) : entry.resolve(message.result); } else if (message.method === 'Runtime.exceptionThrown') exceptions.push(message.params.exceptionDetails); else if (message.method === 'Network.loadingFailed' && message.params.corsErrorStatus) browserFailures.push(message.params.corsErrorStatus); });
   const command = (method, params = {}) => new Promise((resolveCommand, reject) => { const next = ++id; pending.set(next, { resolve: resolveCommand, reject }); socket.send(JSON.stringify({ id: next, method, params })); });
   const evaluate = async expression => { const result = await command('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }); if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text); return result.result.value; };
-  const wait = async expression => { for (let attempt = 0; attempt < 180; attempt++) { if (await evaluate(expression)) return; await delay(100); } throw new Error(`Timeout: ${expression}\nRuntime: ${JSON.stringify(exceptions)}\nServer: ${JSON.stringify(app.service.get('default').state.meta)}\nPage: ${JSON.stringify(await evaluate("({active: document.activeElement.outerHTML, hidden:document.hidden, cache: Object.keys(localStorage).filter(k=>k.startsWith('engr4960j.sync.')&&!k.endsWith('.workbench')).map(k=>{const x=JSON.parse(localStorage[k]); return {key:k,revision:x.revision,meta:x.workingState.meta}})})"))}\n${await evaluate('document.body.innerText.slice(0,800)')}`); };
+  const wait = async expression => { for (let attempt = 0; attempt < 180; attempt++) { if (await evaluate(expression)) return; await delay(100); } throw new Error(`Timeout: ${expression}\nRuntime: ${JSON.stringify(exceptions)}\nServer: ${JSON.stringify(app.service.get('default').state.meta)}\nPage: ${JSON.stringify(await evaluate("({active: document.activeElement.outerHTML, hidden:document.hidden, cache: Object.keys(localStorage).filter(k=>k.startsWith('engr4960j.sync.')&&!k.endsWith('.workbench')).map(k=>{const x=JSON.parse(localStorage[k]); return {key:k,revision:x.revision,meta:x.workingState?.meta}})})"))}\n${await evaluate('document.body.innerText.slice(0,800)')}`); };
   const click = selector => evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); el.focus(); el.click(); })()`);
   const fill = (selector, value) => evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); el.focus(); el.value = ${JSON.stringify(value)}; el.dispatchEvent(new Event('input',{bubbles:true})); })()`);
   await command('Runtime.enable'); await command('Page.enable'); await command('Network.enable'); await command('Page.navigate', { url: origin }); await wait("document.readyState === 'complete' && !!document.getElementById('collaboration-toggle') && !document.getElementById('boot-message')");
@@ -43,7 +44,7 @@ try {
   const pages = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
   const a = await attach(pages.find(page => page.type === 'page'));
   const second = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' })).json(); const b = await attach(second);
-  for (const [page, token] of [[a, tokenA], [b, tokenB]]) {
+  for (const [page, token] of [[a, tokenA], [b, sharedCode]]) {
     await page.click('#collaboration-toggle'); await page.fill('#sync-connect [name="token"]', token); await page.evaluate("document.getElementById('sync-connect').requestSubmit()");
     await page.wait("document.getElementById('collaboration-toggle').textContent.includes('已同步')"); await page.click('[data-sync="close"]');
   }

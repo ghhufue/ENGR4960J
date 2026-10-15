@@ -9,8 +9,21 @@ const root = resolve(fileURLToPath(new URL('../src/', import.meta.url)));
 const digest = token => createHash('sha256').update(token).digest();
 export async function createSyncServer({ database = ':memory:', members = [], allowLocal = false, allowedOrigins = [] } = {}) {
   const origins = new Set(allowedOrigins.map(origin => { const url = new URL(origin); requireThat(['http:', 'https:'].includes(url.protocol) && url.origin === origin, '允许的来源必须是完整的 HTTP 或 HTTPS 来源地址。'); return origin; }));
+  const credentials = new Set();
+  const identities = members.map(member => {
+    requireThat(typeof member.token === 'string' && member.token.length >= 24 && typeof member.id === 'string' && typeof member.name === 'string', '成员配置需要 id、name 和至少 24 字符的 token。');
+    const values = [member.token];
+    if (member.accessCode !== undefined) {
+      requireThat(typeof member.accessCode === 'string' && /^[A-Za-z0-9_-]{6,128}$/.test(member.accessCode), '共享访问口令需为 6 至 128 位字母、数字、下划线或连字符。');
+      values.push(member.accessCode);
+    }
+    const hashes = [...new Set(values)].map(value => {
+      const hash = digest(value), key = hash.toString('hex');
+      requireThat(!credentials.has(key), '不同成员不能使用相同的令牌或共享访问口令。'); credentials.add(key); return hash;
+    });
+    return { id: member.id, name: member.name, admin: member.admin === true, hashes };
+  });
   const service = new ProjectService(database);
-  const identities = members.map(member => { requireThat(typeof member.token === 'string' && member.token.length >= 24 && typeof member.id === 'string' && typeof member.name === 'string', '成员配置需要 id、name 和至少 24 字符的 token。'); return { id: member.id, name: member.name, admin: member.admin === true, hash: digest(member.token) }; });
   const server = createServer(async (request, response) => {
     const json = (status, value) => { response.writeHead(status, { 'Content-Type': 'application/json;charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); response.end(value === undefined ? '' : JSON.stringify(value)); };
     try {
@@ -32,7 +45,8 @@ export async function createSyncServer({ database = ':memory:', members = [], al
         }
         if (pathname === '/api/health') { requireThat(request.method === 'GET', '不支持该请求方法。', 405); json(200, { ok: true }); return; }
         const token = (request.headers.authorization || '').replace(/^Bearer /, '');
-        const found = identities.find(member => timingSafeEqual(member.hash, digest(token)));
+        const tokenHash = digest(token);
+        const found = identities.find(member => member.hashes.some(hash => timingSafeEqual(hash, tokenHash)));
         const loopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(request.socket.remoteAddress);
         const localHost = ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(`http://${request.headers.host}`).hostname);
         const actor = found || (allowLocal && identities.length === 0 && loopback && localHost ? { id: 'local', name: '本机开发', admin: true } : null);

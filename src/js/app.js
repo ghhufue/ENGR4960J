@@ -47,7 +47,10 @@ const sync = new SyncClient(store, {
     else { renderShell(); renderMain(true); renderReference(); remoteRenderPending = false; }
   }
 });
-function rememberConnection() { try { if (sync.enabled) sessionStorage.setItem('engr4960j.sync.connection', JSON.stringify({ projectId: sync.projectId, token: sync.token })); else sessionStorage.removeItem('engr4960j.sync.connection'); } catch {} }
+function rememberConnection() {
+  const connection = { projectId: sync.projectId, token: sync.token };
+  try { if (sync.enabled) sessionStorage.setItem('engr4960j.sync.connection', JSON.stringify(connection)); else sessionStorage.removeItem('engr4960j.sync.connection'); } catch {}
+}
 function syncPath(element) {
   const { target, key } = element.dataset;
   if (element.dataset.kind === 'focus') return ['focusId'];

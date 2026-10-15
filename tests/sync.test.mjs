@@ -17,8 +17,8 @@ const memory = () => { const map = new Map(); return { getItem: key => map.get(k
 const op = (state, path, value) => ({ kind: 'set', path, base: readField(state, path), next: { exists: true, value } });
 const submit = (service, actor, ...operations) => service.submit('default', actor, { requestId: requestId(), operations });
 function fixture(t) { const service = new ProjectService(':memory:'); t.after(() => service.close()); return service; }
-async function httpFixture(t, { allowedOrigins = [] } = {}) {
-  const app = await createSyncServer({ members: [{ ...admin, token: tokenA }, { ...member, token: tokenB }], allowedOrigins });
+async function httpFixture(t, { allowedOrigins = [], memberAccessCode } = {}) {
+  const app = await createSyncServer({ members: [{ ...admin, token: tokenA }, { ...member, token: tokenB, ...(memberAccessCode === undefined ? {} : { accessCode: memberAccessCode }) }], allowedOrigins });
   await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve)); const origin = `http://127.0.0.1:${app.server.address().port}`;
   t.after(() => app.close());
   const call = async (path = '', body, token = tokenA) => {
@@ -165,6 +165,25 @@ test('HTTP authentication, attribution, conditional loading and static access wo
   assert.equal((await call('/history')).value[0].actorName, '乙');
   assert.equal((await call('/changes', { requestId: requestId(), operations: [] })).status, 422);
   assert.equal((await fetch(origin + '/api/projects/default', { headers: { Authorization: `Bearer ${tokenA}`, Origin: 'https://untrusted.example' } })).status, 403);
+});
+
+test('an explicitly configured shared code reads and syncs as its member without admin privileges', async t => {
+  const code = 'team07', { call } = await httpFixture(t, { memberAccessCode: code });
+  const initial = await call('', undefined, code);
+  assert.equal(initial.status, 200); assert.deepEqual(initial.value.actor, member);
+  const written = await call('/changes', { requestId: requestId(), operations: [op(initial.value.state, ['meta', 'group'], 'Shared member write')] }, code);
+  assert.equal(written.status, 200); assert.equal(written.value.state.meta.group, 'Shared member write');
+  assert.equal((await call('', undefined, tokenB)).value.state.meta.group, 'Shared member write');
+  assert.equal((await call('/history', undefined, code)).value[0].actorId, member.id);
+  assert.equal((await call('/replace', { requestId: requestId(), baseRevision: written.value.revision, state: initial.value.state }, code)).status, 403);
+  assert.equal((await call('', undefined, 'wrong-code')).status, 401);
+});
+
+test('shared codes are disabled unless configured and cannot collide between members', async t => {
+  const { call } = await httpFixture(t);
+  assert.equal((await call('', undefined, 'team07')).status, 401);
+  await assert.rejects(createSyncServer({ members: [{ ...member, token: tokenB, accessCode: 'short' }] }), /共享访问口令/);
+  await assert.rejects(createSyncServer({ members: [{ ...admin, token: tokenA, accessCode: 'team07' }, { ...member, token: tokenB, accessCode: 'team07' }] }), /相同的令牌或共享访问口令/);
 });
 
 test('GitHub Pages uses the public API while local and backend pages keep same-origin requests', () => {
