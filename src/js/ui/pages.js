@@ -86,10 +86,25 @@ export function renderChecks(store, ui) {
 export function renderTopbar(store, ui) {
   return `<div class="brand-lockup"><button class="icon-button mobile-menu" data-action="menu" aria-label="${tr('打开分析导航')}">${icon('menu')}</button><span class="brand-icon">${icon('layers')}</span><span class="brand-name">${tr('工程伦理工作台')}</span><span class="brand-divider"></span><span class="project-name" title="${escapeHtml(store.state.meta.title)}">${escapeHtml(store.state.meta.title)}</span></div><div class="topbar-actions"><span id="save-status" class="save-status"></span><details class="action-menu project-menu"><summary class="button secondary" aria-label="${tr('备份与导入')}">${icon('download')} <span class="action-label">${tr('备份与导入')}</span></summary><div class="menu-panel"><button data-action="backup">${tr('导出项目备份 JSON')}</button><button data-action="import">${tr('从备份导入')}</button><button data-action="export-notes">${tr('导出人工分析笔记 TXT')}</button><button data-action="new-project">${tr('新建案例')}</button></div></details><button class="button secondary" data-action="presentation" aria-label="${tr(ui.presentation ? '退出展示' : '展示模式')}">${icon('screen')} <span class="action-label">${tr(ui.presentation ? '退出展示' : '展示模式')}</span></button>${renderLanguageToggle()}${renderThemeToggle(ui.theme)}</div>`;
 }
-export function renderNav(store, ui, mobile = false) {
+export function renderWorkspaceStatus(sync = {}) {
+  let label = '本地工作区', detail = t('内容由组员分析 · 浏览器保存'), tone = 'local';
+  if (sync.status === 'connecting') { label = '正在连接服务器'; detail = t('正在验证访问权限'); tone = 'active'; }
+  else if (sync.enabled) {
+    label = '已连接服务器'; tone = 'connected';
+    const progress = { pending: '待同步', syncing: '同步中', conflict: '待人工裁定', synced: '已同步' };
+    detail = t('项目 {project} · {status}', { project: sync.projectId, status: t(progress[sync.status] || '待同步') });
+    if (sync.status === 'conflict') tone = 'warning';
+    if (sync.status === 'pending' || sync.status === 'syncing') tone = 'active';
+    if (sync.status === 'offline') { label = '离线 · 等待重连'; detail = t('草稿已保留 · 恢复后自动同步'); tone = 'warning'; }
+    if (sync.status === 'blocked') { label = '同步受阻'; detail = t('草稿已保留 · 请打开协作处理'); tone = 'error'; }
+    if (sync.cacheError || sync.store?.saveStatus === 'failed') { detail = t('本地缓存失败 · 请导出备份'); tone = 'error'; }
+  } else if (sync.error) { label = '连接失败'; detail = t('尚未连接 · 浏览器保存'); tone = 'error'; }
+  return `<span class="workspace-dot ${tone}" aria-hidden="true"></span> ${tr(label)}<span class="workspace-detail">${escapeHtml(detail)}</span>`;
+}
+export function renderNav(store, ui, mobile = false, sync = {}) {
   const nav = (route, label, symbol) => `<button class="nav-item ${ui.route === route ? 'active' : ''}" data-action="navigate" data-route="${route}" ${ui.route === route ? 'aria-current="page"' : ''}>${icon(symbol)}<span>${tr(label)}</span></button>`;
   return `${mobile ? `<div class="drawer-heading"><strong>${tr('分析导航')}</strong><button class="icon-button" data-action="close-nav" aria-label="${tr('关闭导航')}">${icon('close')}</button></div>` : ''}<div class="workspace-label"><span class="workspace-avatar">E</span><div><strong>ENGR4960J</strong><small>${escapeHtml(store.state.meta.group ? t('小组 {group}', { group: store.state.meta.group }) : t('工程伦理案例分析'))}</small></div></div>${nav('overview', '案例概览', 'grid')}<div class="nav-group-label">${tr('十步分析')} <span>${STEPS.filter(step => reviewStatus(store.state, step.number) === '已复核').length}/10</span></div><nav class="steps-nav">${STEPS.map(step => {
     const status = reviewStatus(store.state, step.number);
     return `<button class="nav-item step-nav ${ui.route === `step-${step.number}` ? 'active' : ''}" data-action="navigate" data-route="step-${step.number}" ${ui.route === `step-${step.number}` ? 'aria-current="step"' : ''}><span class="nav-number">${String(step.number).padStart(2, '0')}</span><span class="nav-title">${tr(step.title)}</span><span class="nav-status ${statusClass[status]}" title="${tr(status)}" aria-label="${tr(status)}">${icon(status === '已复核' ? 'check' : status === '待复核' ? 'alert' : status === '进行中' ? 'clock' : 'circle')}</span></button>`;
-  }).join('')}</nav><div class="nav-group-label">${tr('材料与提交')}</div>${nav('sources', '来源库', 'book')}${nav('reflection', '过程与反思', 'clock')}${nav('checks', '完成检查', 'shield')}<div class="sidebar-bottom"><span class="local-dot"></span> ${tr('本地工作区')}<span>${tr('内容由组员分析 · 浏览器保存')}</span></div>`;
+  }).join('')}</nav><div class="nav-group-label">${tr('材料与提交')}</div>${nav('sources', '来源库', 'book')}${nav('reflection', '过程与反思', 'clock')}${nav('checks', '完成检查', 'shield')}<div class="sidebar-bottom" data-workspace-status role="status">${renderWorkspaceStatus(sync)}</div>`;
 }

@@ -12,7 +12,7 @@ import { icon } from './ui/icons.js';
 import { readTheme, applyTheme, saveTheme } from './core/theme.js';
 import { renderThemeToggle } from './ui/theme-control.js';
 import { t, getLocale, readLanguage, setLanguage, saveLanguage } from './core/i18n.js';
-import { renderOverview, renderStep, renderSources, renderReflection, renderChecks, renderTopbar, renderNav } from './ui/pages.js';
+import { renderOverview, renderStep, renderSources, renderReflection, renderChecks, renderTopbar, renderNav, renderWorkspaceStatus } from './ui/pages.js';
 import { SyncClient } from './core/sync.js';
 import { syncApiBase } from './core/sync-config.js';
 import { requestId } from './core/sync-protocol.js';
@@ -39,6 +39,8 @@ const sync = new SyncClient(store, {
   onStatus: () => {
     const button = document.getElementById('collaboration-toggle');
     if (button) { button.querySelector('.action-label').textContent = syncLabel(sync); button.setAttribute('aria-label', syncLabel(sync)); button.title = sync.error || syncLabel(sync); }
+    const workspaceStatus = renderWorkspaceStatus(sync);
+    document.querySelectorAll('[data-workspace-status]').forEach(element => { if (element.innerHTML !== workspaceStatus) element.innerHTML = workspaceStatus; });
     const main = document.getElementById('main'); if (main) main.inert = sync.status === 'connecting';
   },
   onState: () => {
@@ -107,7 +109,7 @@ function renderMain(preserve = false) {
   if (preserve) window.scrollTo(0, scroll);
 }
 function renderShell() {
-  byId('topbar').innerHTML = renderTopbar(store, ui); byId('sidebar').innerHTML = renderNav(store, ui); byId('nav-dialog').innerHTML = renderNav(store, ui, true);
+  byId('topbar').innerHTML = renderTopbar(store, ui); byId('sidebar').innerHTML = renderNav(store, ui, false, sync); byId('nav-dialog').innerHTML = renderNav(store, ui, true, sync);
   const collaborationButton = document.createElement('button'); collaborationButton.id = 'collaboration-toggle'; collaborationButton.className = 'button secondary'; collaborationButton.dataset.action = 'collaboration'; collaborationButton.setAttribute('aria-label', syncLabel(sync)); collaborationButton.innerHTML = `${icon('layers')} <span class="action-label">${escapeHtml(syncLabel(sync))}</span>`; byId('topbar').querySelector('.topbar-actions').prepend(collaborationButton);
   document.querySelector('.skip-link').textContent = t('跳到分析内容');
   for (const id of ['sidebar', 'nav-dialog']) byId(id).setAttribute('aria-label', t('分析导航'));
@@ -250,6 +252,6 @@ window.addEventListener('focus', () => { if (sync.enabled) sync.poll().catch(() 
 window.addEventListener('online', () => { if (sync.enabled) sync.poll().catch(() => {}); });
 window.addEventListener('pagehide', () => { store.flush(); if (sync.enabled) sync.persist(); });
 window.addEventListener('beforeunload', event => { store.flush(); if (sync.enabled) sync.persist(); if (sync.inFlight || sync.queue.size || store.saveStatus === 'failed' && store.state.records.length) { event.preventDefault(); event.returnValue = ''; } });
-store.subscribe(() => { saveIndicator(); byId('sidebar').innerHTML = renderNav(store, ui); });
+store.subscribe(() => { saveIndicator(); byId('sidebar').innerHTML = renderNav(store, ui, false, sync); });
 renderShell(); renderMain(); renderReference(); byId('boot-message').remove();
 try { const connection = JSON.parse(sessionStorage.getItem('engr4960j.sync.connection') || 'null'); if (connection) sync.connect(connection).catch(error => notice(error.message, true)); } catch {}

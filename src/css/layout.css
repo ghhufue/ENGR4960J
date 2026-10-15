@@ -29,8 +29,12 @@
 .nav-status.warning { color: var(--warning); }
 .nav-status.accent { color: var(--accent); }
 .sidebar-bottom { margin: auto 8px 0; padding-top: 28px; color: var(--secondary); font-size: 12px; }
-.sidebar-bottom > span:last-child { display: block; margin-top: 4px; color: var(--muted); }
-.local-dot { display: inline-block; width: 6px; height: 6px; background: var(--success); border-radius: 50%; margin-right: 5px; }
+.workspace-detail { display: block; margin-top: 4px; color: var(--muted); overflow-wrap: anywhere; }
+.workspace-dot { display: inline-block; width: 6px; height: 6px; background: var(--muted); border-radius: 50%; margin-right: 5px; }
+.workspace-dot.connected { background: var(--success); }
+.workspace-dot.active { background: var(--accent); }
+.workspace-dot.warning { background: var(--warning); }
+.workspace-dot.error { background: var(--error); }
 .main { width: 100%; max-width: 1024px; margin: 0 auto; padding: 32px 32px 100px; min-width: 0; outline: none; }
 .page-heading { margin-bottom: 32px; }
 .eyebrow { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
