@@ -3,6 +3,11 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'Assignment1/src/**'
+      - 'Assignment2/src/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -29,10 +34,20 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      - name: Prepare website
+        run: |
+          assignment1_source=src
+          if [[ -d Assignment1/src ]]; then
+            assignment1_source=Assignment1/src
+          fi
+          mkdir -p _site/assignment2
+          cp -a "$assignment1_source"/. _site/
+          cp -a Assignment2/src/. _site/assignment2/
+
       - name: Upload website
         uses: actions/upload-pages-artifact@v4
         with:
-          path: ./src
+          path: ./_site
 
       - name: Deploy Pages
         id: deployment

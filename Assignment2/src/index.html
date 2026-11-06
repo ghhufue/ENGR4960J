@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An evidence-led responsibility workbench for the ENGR4960J telerobotic surgery case.">
+  <meta name="theme-color" content="#142e34">
+  <title>Responsibility Workbench · ENGR4960J</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Skip to workspace</a>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><path d="M4 14h6l3-7 4 14 3-7h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><strong>Responsibility</strong><span>Workbench</span></div>
+      </div>
+      <div class="course-label">ENGR4960J <span></span> ASSIGNMENT 02</div>
+      <p class="nav-label">WORKSPACE</p>
+      <nav id="navigation" aria-label="Workspace sections"></nav>
+      <div class="sidebar-bottom">
+        <span class="sidebar-index">CASE FILE / 01</span>
+        <strong>Telerobotic surgery</strong>
+        <small>Engineering ethics · Case analysis</small>
+      </div>
+    </aside>
+    <div class="workspace">
+      <header class="toolbar">
+        <div class="breadcrumb"><span>Assignment 02</span><span aria-hidden="true">/</span><strong id="breadcrumb">Case &amp; timeline</strong></div>
+        <div class="toolbar-actions">
+          <span id="save-status" class="save-status">Local workspace</span>
+          <button class="button quiet" type="button" data-command="import">Import</button>
+          <button class="button secondary" type="button" data-command="export">Export <span aria-hidden="true">↓</span></button>
+          <input id="import-file" type="file" accept=".json,application/json" hidden>
+        </div>
+      </header>
+      <main id="workspace" tabindex="-1"><p>Loading the workbench…</p></main>
+    </div>
+  </div>
+  <dialog id="editor" aria-labelledby="dialog-title">
+    <form id="editor-form">
+      <header class="dialog-header">
+        <div><p class="eyebrow">WORKSPACE RECORD</p><h2 id="dialog-title"></h2></div>
+        <button type="button" class="button quiet close-button" data-command="close" aria-label="Close dialog">×</button>
+      </header>
+      <div id="editor-body" class="dialog-body"></div>
+      <p id="editor-error" class="form-error" role="alert" hidden></p>
+      <footer id="editor-actions" class="dialog-footer"></footer>
+    </form>
+  </dialog>
+  <p id="notice" class="notice" role="status" hidden></p>
+  <template id="robot-illustration">
+    <svg class="robot-art" viewBox="0 0 460 330" fill="none" aria-hidden="true" focusable="false">
+      <defs>
+        <pattern id="diagram-grid" width="25" height="25" patternUnits="userSpaceOnUse"><path d="M25 0H0v25" stroke="#b3efde" stroke-opacity=".10"/></pattern>
+        <radialGradient id="diagram-fade"><stop offset=".47" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+        <mask id="diagram-mask"><ellipse cx="235" cy="164" rx="229" ry="176" fill="url(#diagram-fade)"/></mask>
+        <linearGradient id="arm-fill" x1="90" y1="280" x2="310" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#22515a"/><stop offset="1" stop-color="#73b6a6"/></linearGradient>
+        <linearGradient id="beam" x1="319" y1="186" x2="319" y2="287" gradientUnits="userSpaceOnUse"><stop stop-color="#e7b286"/><stop offset="1" stop-color="#e7b286" stop-opacity="0"/></linearGradient>
+      </defs>
+      <g mask="url(#diagram-mask)"><path d="M0 0h460v330H0z" fill="url(#diagram-grid)"/></g>
+      <g stroke="#a1d8c7" stroke-opacity=".32" stroke-dasharray="4 5"><path d="M47 250h357M319 44v241M49 100h354"/><circle cx="319" cy="100" r="49"/><circle cx="172" cy="89" r="48"/></g>
+      <path d="M62 267h172l16 17H47l15-17Z" fill="#183f46" stroke="#81b9ab" stroke-width="1.4"/>
+      <path d="M88 267v-20l20-13h71l20 13v20H88Z" fill="#316771" stroke="#92c9bb" stroke-width="1.4"/>
+      <path d="M126 237l-10-70c-2-13 1-25 9-35l39-50 24 21-37 48c-4 5-5 10-4 16l12 70h-33Z" fill="url(#arm-fill)" stroke="#b6e1d2" stroke-width="1.7"/>
+      <path d="M165 71l47-16c10-4 20-4 30-1l77 24-7 32-82-23-50 18-15-34Z" fill="url(#arm-fill)" stroke="#b6e1d2" stroke-width="1.7"/>
+      <circle cx="174" cy="88" r="21" fill="#285c65" stroke="#b6e1d2" stroke-width="1.7"/>
+      <circle cx="174" cy="88" r="9" fill="#193f47" stroke="#80b7aa" stroke-width="1.2"/>
+      <circle cx="318" cy="98" r="17" fill="#477e80" stroke="#c2e6d8" stroke-width="1.6"/>
+      <circle cx="318" cy="98" r="6" fill="#244851" stroke="#98ccba"/>
+      <path d="M309 116h18v45h-18z" fill="#649d95" stroke="#bce2d4" stroke-width="1.5"/>
+      <path d="M313 162v15l-7 11m17-26v15l8 11" stroke="#c4eadd" stroke-width="2" stroke-linecap="round"/>
+      <path d="M319 181v91" stroke="url(#beam)" stroke-width="1.5" stroke-dasharray="3 5"/>
+      <g stroke="#f1ba8f" stroke-width="1.1"><circle cx="319" cy="237" r="15"/><circle cx="319" cy="237" r="5"/><path d="M319 214v10m0 26v10m-23-23h10m26 0h10"/></g>
+      <path d="M244 287h132m-109-11h86" stroke="#9dd1c1" stroke-opacity=".48"/>
+      <g fill="#b0dacc" font-family="monospace" font-size="9" letter-spacing="1"><text x="42" y="60">SYSTEM DIAGRAM</text><text x="42" y="75" fill="#6ea398">MOTION CONTROL / 01</text><text x="343" y="235" fill="#f1ba8f">TOOL TIP</text><text x="62" y="304">REMOTE ACTUATION</text></g>
+      <circle cx="44" cy="95" r="3" fill="#80cbbb"/><path d="M44 95h61l25 18" stroke="#80cbbb" stroke-opacity=".5"/>
+    </svg>
+  </template>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
