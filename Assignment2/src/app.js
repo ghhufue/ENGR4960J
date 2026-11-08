@@ -26,6 +26,12 @@ const modelViews = [
   { id: 'organization', label: 'Hierarchy & organization', icon: 'hierarchy', question: 'Who knew, approved, and could intervene?', prompt: 'Compare formal authority with practical control. Trace the handoffs among the hospital, manufacturer, and network provider, then record who should explain the outcome and to whom.' },
   { id: 'future', label: 'Forward-looking', icon: 'future', question: 'Who should investigate, respond, and prevent recurrence?', prompt: 'Write an action with a proposed owner, the authority and resources they need, a trigger or deadline, and a concrete completion check.' }
 ];
+const mapTones = {
+  Supported: 'supported', Contested: 'contested', 'Not established': 'neutral', Unassessed: 'unknown',
+  'Teacher brief': 'supported', 'Simulated material': 'contested', 'Group hypothesis': 'purple', 'Open question': 'unknown',
+  Proposed: 'contested', Agreed: 'neutral', 'In progress': 'purple', Verified: 'supported', 'Sequence only': 'purple'
+};
+const displayStatus = value => value === 'Teacher brief' ? 'Case Fact' : value;
 const phaseOrder = schemas.events.fields.find(field => field.key === 'phase').choices;
 const active = group => project[group].filter(item => !item.archived);
 const find = (group, id) => project[group].find(item => item.id === id);
@@ -84,9 +90,9 @@ function route() {
 
 function pill(value) {
   const teal = ['Teacher brief', 'Supported', 'Verified', 'Agreed'];
-  const amber = ['Group hypothesis', 'Open question', 'To obtain', 'Simulated material', 'Contested', 'Insufficient information', 'Proposed', 'Archived'];
+  const amber = ['Group hypothesis', 'Open question', 'To obtain', 'Simulated material', 'Contested', 'Insufficient information', 'Apparent gap', 'Proposed', 'Archived'];
   const tone = teal.includes(value) ? 'teal' : amber.includes(value) ? 'amber' : '';
-  return `<span class="pill" data-tone="${tone}">${escape(value)}</span>`;
+  return `<span class="pill" data-tone="${tone}">${escape(displayStatus(value))}</span>`;
 }
 
 function editButton(group, id, label = 'Edit', className = 'secondary') {
@@ -135,14 +141,19 @@ function pathStrip() {
 function renderCase() {
   const gap = active('gaps')[0];
   const timeline = [...visible('events')].sort((a, b) => phaseOrder.indexOf(a.phase) - phaseOrder.indexOf(b.phase));
+  const reconstructions = timeline.filter(item => item.status === 'Simulated material');
+  const caseEvents = timeline.filter(item => item.status !== 'Simulated material');
+  const eventRows = items => list(items.map(item => recordRow('events', item,
+    line(item.time) + line(item.detail), [item.phase, item.status], chips('actors', item.actors) + chips('evidence', item.evidence))), 'No events recorded.');
   return `<section class="hero" aria-labelledby="page-title">
     <div class="hero-copy"><p class="eyebrow">CASE 01 / ENGINEERING ETHICS</p><h1 id="page-title">${escape(project.caseInfo.title)}</h1>
     <p>${escape(project.caseInfo.description)}</p>
-    <div class="hero-actions"><a class="button primary" href="#models/causal">Start causal analysis ${icon('future')}</a>${editButton('caseInfo', '', 'Edit case summary', 'quiet')}</div></div>
+    <div class="hero-actions"><a class="button primary" href="#models/causal">Explore responsibility maps ${icon('future')}</a>${editButton('caseInfo', '', 'Edit case summary', 'quiet')}
+    <button class="button quiet" type="button" data-command="example">Load group example</button></div></div>
     ${robotArt}<span class="hero-caption" aria-hidden="true">FIG. 01 · SCHEMATIC</span>
   </section>
   <section class="section summary-grid" aria-label="Case at a glance">
-    <div class="panel">${heading('Incident at a glance', 'Sequence from the teacher’s hypothetical case brief.')}${pathStrip()}</div>
+    <div class="panel">${heading('Incident at a glance', 'Sequence from the original hypothetical case.')}${pathStrip()}</div>
     <div class="panel gap-callout"><p class="eyebrow">OPEN RESPONSIBILITY QUESTION</p><h3>${escape(gap?.title || 'Review the allocation of duties')}</h3>
     <a class="text-link" href="#gaps">Investigate the gap →</a></div>
   </section>
@@ -155,9 +166,10 @@ function renderCase() {
     <div class="summary-grid"><article class="panel"><h3>Harm and affected parties</h3>${line(project.caseInfo.harm)}</article>
     <article class="panel"><h3>Open questions</h3>${line(project.caseInfo.questions)}</article></div>
   </section>
-  <section class="section">${heading('Case timeline', 'Label facts, hypotheses, and unknowns before connecting them.', editButton('events', '', '+ Add event'))}
-    ${list(timeline.map(item => recordRow('events', item, line(item.detail), [item.phase, item.status], chips('actors', item.actors) + chips('evidence', item.evidence) + line(item.time))), 'No events recorded.')}
-  </section>`;
+  <section class="section">${heading('Case timeline', 'The original case facts and open questions are listed here.', editButton('events', '', '+ Add event'))}
+    ${eventRows(caseEvents)}
+  </section>
+  ${reconstructions.length ? `<section class="section">${heading('Detailed reconstruction (assumed)', 'The group’s simulated timeline is drawn from report assumptions A1–A10.')}${eventRows(reconstructions)}</section>` : ''}`;
 }
 
 function renderActors() {
@@ -168,9 +180,58 @@ function renderActors() {
     ${renderRelations(false)}`;
 }
 
+function hasCaseFactBasis(ids) {
+  return ids.length > 0 && ids.every(id => {
+    const source = find('evidence', id);
+    return !source.archived && source.status === 'Teacher brief';
+  });
+}
+
+function renderMap(title, labels, groups, edges) {
+  if (!edges.length) return `<section class="section panel">${heading(title)}${empty('Add or show records to draw connections.')}</section>`;
+
+  const endpoints = ['from', 'to'].map(key => [...new Set(edges.map(edge => edge[key]))]);
+  const height = Math.max(...endpoints.map(ids => ids.length)) * 68;
+  const positions = endpoints.map(ids => new Map(ids.map((id, index) => [id, (index + .5) * height / ids.length])));
+  const paths = edges.map(edge => {
+    const start = positions[0].get(edge.from);
+    const end = positions[1].get(edge.to);
+    return `<path class="map-path${edge.dashed ? ' dashed' : ''}" data-tone="${mapTones[edge.status]}" d="M0 ${start} C43 ${start}, 55 ${end}, 95 ${end}" marker-end="url(#map-arrow)"><title>${escape(edge.id + ' · ' + edge.title + ' · ' + displayStatus(edge.status))}</title></path>`;
+  });
+  const columns = endpoints.map((ids, column) => `<div class="map-column">${ids.map(id => {
+    if (!id) return '<span class="map-node map-unassigned">Unassigned</span>';
+    const group = groups[column];
+    const item = find(group, id);
+    const label = `${id} · ${item.title}${item.archived ? ' (archived)' : ''}`;
+    return `<button type="button" class="map-node" data-edit="${group}" data-id="${id}" title="${escape(label)}" aria-label="${escape(label)}">
+      <span class="record-id">${id}${item.archived ? ' · Archived' : ''}</span><strong>${escape(item.title)}</strong>
+    </button>`;
+  }).join('')}</div>`);
+  const legend = [...new Set(edges.map(edge => edge.status))].map(status =>
+    `<span><i class="map-swatch" data-tone="${mapTones[status]}" aria-hidden="true"></i>${escape(displayStatus(status))}</span>`);
+  if (edges.some(edge => edge.dashed)) legend.push('<span><i class="map-swatch dashed" aria-hidden="true"></i>Assumed, unresolved, proposed, or sequence only</span>');
+
+  return `<section class="section panel responsibility-map" aria-labelledby="map-heading">
+    <h2 id="map-heading">${title}</h2>
+    <p class="muted">Select a node to open its record. Line colors reflect the recorded assessments or statuses. The list below shows the reasoning and evidence for each connection.</p>
+    <div class="map-legend" aria-label="Map legend">${legend.join('')}</div>
+    <div class="map-headings"><span>${labels[0]}</span><span>${labels[1]}</span></div>
+    <div class="map-grid" style="height:${height}px">
+      ${columns[0]}
+      <svg class="map-connections" viewBox="0 0 100 ${height}" preserveAspectRatio="none" aria-hidden="true">
+        <defs><marker id="map-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="context-stroke"/></marker></defs>
+        ${paths.join('')}
+      </svg>
+      ${columns[1]}
+    </div>
+  </section>`;
+}
+
 function renderRelations(filterByActor = true) {
   const rows = visible('relations').filter(item => !filterByActor || actorMatches([item.from, item.to]));
-  return `<section class="section">${heading('Organizational relationships', 'Map approval, testing, reporting, and handoffs. Open questions are labeled explicitly.', editButton('relations', '', '+ Add relationship'))}
+  return `${filterByActor ? renderMap('Organization map', ['From actor', 'To actor'], ['actors', 'actors'], rows.map(item => ({
+    ...item, dashed: item.status !== 'Teacher brief' || !hasCaseFactBasis(item.evidence)
+  }))) : ''}<section class="section">${heading('Organizational relationships', 'Review approval, testing, reporting, and handoffs.', editButton('relations', '', '+ Add relationship'))}
     ${list(rows.map(item => recordRow('relations', item, endpoints('actors', item) + line(item.detail), [item.kind, item.phase, item.status], chips('evidence', item.evidence))), 'No matching relationships.')}</section>`;
 }
 
@@ -178,7 +239,13 @@ function renderCausal() {
   const rows = visible('causes').filter(item => actorMatches([
     ...item.actors, ...find('events', item.from).actors, ...find('events', item.to).actors
   ]));
-  return `<section class="section">${heading('Directed causal map', 'Arrows indicate causal contributions under review. “Then” marks sequence only.', editButton('causes', '', '+ Add causal link'))}
+  const edges = rows.map(item => ({ ...item,
+    status: item.kind === 'Sequence only' ? item.kind : item.status,
+    dashed: item.kind === 'Sequence only' || !hasCaseFactBasis(item.evidence) ||
+      [item.from, item.to].some(id => find('events', id).status !== 'Teacher brief')
+  }));
+  return `${renderMap('Directed causal map', ['Upstream event', 'Downstream event'], ['events', 'events'], edges)}
+    <section class="section">${heading('Causal links', 'Review the mechanism and counterfactual behind each connection.', editButton('causes', '', '+ Add causal link'))}
     ${list(rows.map(item => recordRow('causes', item, endpoints('events', item) + line(item.reason) +
       (item.alternative ? `<p class="plain"><strong>Counterfactual or alternative</strong> · ${escape(item.alternative)}</p>` : ''), [item.kind, item.status],
       chips('actors', item.actors) + chips('evidence', item.evidence) + (item.evidence.length ? '' : empty('Add evidence for this causal link.')))), 'No matching causal links.')}</section>`;
@@ -186,17 +253,16 @@ function renderCausal() {
 
 function renderOrganization() {
   const rows = visible('actors').filter(item => item.kind !== 'Technical component' && actorMatches([item.id]));
-  return `<section class="section">${heading('Knowledge and authority matrix', 'The entries show the group’s records for each person or organization.')}
+  return `${renderRelations()}<section class="section">${heading('Knowledge and authority matrix', 'The entries show the group’s records for each person or organization.')}
     ${rows.length ? `<div class="table-wrap" tabindex="0" aria-label="Knowledge and authority table"><table>
     <thead><tr><th scope="col">Actor</th><th scope="col">What they knew</th><th scope="col">Formal authority</th><th scope="col">Practical control</th></tr></thead>
     <tbody>${rows.map(item => `<tr><th scope="row">${chips('actors', [item.id])}</th>
-      ${[item.knowledge, item.authority, item.capacity].map(value => `<td class="plain">${escape(value || 'Open question')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : empty('No matching actors.')}</section>
-    ${renderRelations()}`;
+      ${[item.knowledge, item.authority, item.capacity].map(value => `<td class="plain">${escape(value || 'Open question')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : empty('No matching actors.')}</section>`;
 }
 
 function filterSelect(id, label, options, value) {
   return `<label class="input-label">${label}<select class="input-select" id="${id}">${['', ...options].map(option =>
-    `<option value="${escape(option)}"${option === value ? ' selected' : ''}>${escape(option || 'All')}</option>`).join('')}</select></label>`;
+    `<option value="${escape(option)}"${option === value ? ' selected' : ''}>${escape(displayStatus(option) || 'All')}</option>`).join('')}</select></label>`;
 }
 
 function renderActions() {
@@ -204,8 +270,12 @@ function renderActions() {
   const rows = visible('actions').filter(item => (!actionStage || item.phase === actionStage) && actorMatches([item.owner, ...item.actors]));
   return `<section class="section">${heading('Action plan', 'Proposals identify a person or organization, a trigger, and the evidence needed for review.', editButton('actions', '', '+ Add action'))}
     <div class="section-head">${filterSelect('action-stage', 'Filter by action stage', stages, actionStage)}</div>
+    ${renderMap('Action ownership map', ['Proposed owner', 'Action'], ['actors', 'actions'], rows.map(item => ({
+      ...item, from: item.owner, to: item.id, dashed: item.status !== 'Verified'
+    })))}
     ${list(rows.map(item => recordRow('actions', item,
       `<p><strong>Proposed owner</strong> · ${escape(find('actors', item.owner)?.title || 'Unassigned')}</p>` +
+      (item.resources ? `<p class="plain"><strong>Authority and resources</strong> · ${escape(item.resources)}</p>` : '') +
       (item.deadline ? `<p><strong>Trigger or deadline</strong> · ${escape(item.deadline)}</p>` : '') +
       (item.verification ? `<p class="plain"><strong>Completion evidence</strong> · ${escape(item.verification)}</p>` : empty('Add a completion check for this action.')),
       [item.phase, item.status], chips('actors', [item.owner, ...item.actors].filter(Boolean)) + chips('events', item.events) + chips('evidence', item.evidence))), 'No matching actions.')}</section>`;
@@ -303,7 +373,7 @@ function formField(field, item) {
   }
   let control;
   if (type === 'select' || type === 'reference') {
-    const entries = choices ? choices.map(choice => [choice, choice]) : [
+    const entries = choices ? choices.map(choice => [choice, displayStatus(choice)]) : [
       ['', 'Select a record…'], ...options.map(record => [record.id, record.id + ' · ' + record.title + (record.archived ? ' (archived)' : '')])
     ];
     control = `<select name="${key}"${required ? ' required' : ''}>${entries.map(([id, title]) =>
@@ -433,6 +503,11 @@ document.addEventListener('click', event => {
     case 'import':
       importFile.click();
       break;
+    case 'example':
+      pendingImport = createProject();
+      openDialog('Load the group example?', '<p>This replaces the current workspace with the group’s simulated case and analysis. Export your current project as JSON first if you want to keep a copy.</p>',
+        '<button class="button secondary" type="button" data-command="close">Cancel</button><button class="button primary" type="button" data-command="replace-example">Load example</button>');
+      break;
     case 'export':
       openDialog('Export project', '<p>Use JSON to reopen the editable project or Markdown for the group’s written analysis.</p>',
         '<button class="button secondary" type="button" data-command="markdown">Download Markdown</button><button class="button primary" type="button" data-command="json">Download JSON</button>');
@@ -444,11 +519,12 @@ document.addEventListener('click', event => {
       download('responsibility-analysis.md', exportNotes(project), 'text/markdown;charset=utf-8');
       break;
     case 'replace':
+    case 'replace-example':
       if (!pendingImport) break;
       project = pendingImport;
       showArchived = false;
       evidenceStatus = actionStage = actorFocus = '';
-      completeEdit('Project imported.');
+      completeEdit(button.dataset.command === 'replace-example' ? 'Group example loaded.' : 'Project imported.');
       break;
     case 'archive': {
       if (!editorState?.id) break;
