@@ -152,13 +152,13 @@ function renderCase() {
     <button class="button quiet" type="button" data-command="example">Load group example</button></div></div>
     ${robotArt}<span class="hero-caption" aria-hidden="true">FIG. 01 · SCHEMATIC</span>
   </section>
-  <section class="section summary-grid" aria-label="Case at a glance">
+  <section class="section summary-grid case-overview" aria-label="Case at a glance">
     <div class="panel">${heading('Incident at a glance', 'Sequence from the original hypothetical case.')}${pathStrip()}</div>
     <div class="panel gap-callout"><p class="eyebrow">OPEN RESPONSIBILITY QUESTION</p><h3>${escape(gap?.title || 'Review the allocation of duties')}</h3>
     <a class="text-link" href="#gaps">Investigate the gap →</a></div>
   </section>
   <section class="section">${heading('Three lenses on the same incident', 'Use one set of actors and evidence to build separate arguments.')}
-    <div class="cards">${modelViews.map((model, index) => `<a class="card model-card" href="#models/${model.id}">
+    <div class="cards">${modelViews.map((model, index) => `<a class="card model-card" data-model="${model.id}" href="#models/${model.id}">
       <div class="card-top"><span class="icon-box">${icon(model.icon)}</span><span class="record-id">0${index + 1} ↗</span></div>
       <h3>${model.label}</h3><p>${model.question}</p></a>`).join('')}</div>
   </section>
@@ -191,7 +191,8 @@ function renderMap(title, labels, groups, edges) {
   if (!edges.length) return `<section class="section panel">${heading(title)}${empty('Add or show records to draw connections.')}</section>`;
 
   const endpoints = ['from', 'to'].map(key => [...new Set(edges.map(edge => edge[key]))]);
-  const height = Math.max(...endpoints.map(ids => ids.length)) * 68;
+  const rows = Math.max(...endpoints.map(ids => ids.length));
+  const height = rows * 68;
   const positions = endpoints.map(ids => new Map(ids.map((id, index) => [id, (index + .5) * height / ids.length])));
   const paths = edges.map(edge => {
     const start = positions[0].get(edge.from);
@@ -212,18 +213,18 @@ function renderMap(title, labels, groups, edges) {
   if (edges.some(edge => edge.dashed)) legend.push('<span><i class="map-swatch dashed" aria-hidden="true"></i>Assumed, unresolved, proposed, or sequence only</span>');
 
   return `<section class="section panel responsibility-map" aria-labelledby="map-heading">
-    <h2 id="map-heading">${title}</h2>
-    <p class="muted">Select a node to open its record. Line colors reflect the recorded assessments or statuses. The list below shows the reasoning and evidence for each connection.</p>
+    <div class="map-title"><h2 id="map-heading">${title}</h2><span class="map-count">${edges.length} ${edges.length === 1 ? 'connection' : 'connections'}</span></div>
+    <p class="muted">Select a node to open its record. See the list below for the reasoning and evidence behind each connection.</p>
     <div class="map-legend" aria-label="Map legend">${legend.join('')}</div>
-    <div class="map-headings"><span>${labels[0]}</span><span>${labels[1]}</span></div>
-    <div class="map-grid" style="height:${height}px">
+    <div class="map-canvas"><div class="map-headings"><span>${labels[0]}</span><span>${labels[1]}</span></div>
+    <div class="map-grid" style="--map-rows:${rows}">
       ${columns[0]}
       <svg class="map-connections" viewBox="0 0 100 ${height}" preserveAspectRatio="none" aria-hidden="true">
         <defs><marker id="map-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="context-stroke"/></marker></defs>
         ${paths.join('')}
       </svg>
       ${columns[1]}
-    </div>
+    </div></div>
   </section>`;
 }
 
@@ -286,8 +287,8 @@ function renderModels(model) {
   const filterActors = visible('actors');
   const content = { causal: renderCausal, organization: renderOrganization, future: renderActions }[model.id]();
   return `<nav class="view-tabs" aria-label="Responsibility models">${modelViews.map(item =>
-    `<a class="button quiet" href="#models/${item.id}"${item.id === model.id ? ' aria-current="true"' : ''}>${icon(item.icon)}${item.label}</a>`).join('')}</nav>
-    <div class="panel"><div class="section-head"><div><p class="eyebrow">MODEL GUIDE</p><h2>${model.question}</h2></div>
+    `<a class="button quiet" data-model="${item.id}" href="#models/${item.id}"${item.id === model.id ? ' aria-current="true"' : ''}>${icon(item.icon)}${item.label}</a>`).join('')}</nav>
+    <div class="panel model-guide" data-model="${model.id}"><div class="section-head"><div><p class="eyebrow">MODEL GUIDE</p><h2>${model.question}</h2></div>
     <label class="input-label">Focus on actor<select class="input-select" id="actor-focus"><option value="">All actors</option>${filterActors.map(item =>
       `<option value="${item.id}"${item.id === actorFocus ? ' selected' : ''}>${escape(item.title)}</option>`).join('')}</select></label></div>
     <p class="muted">${model.prompt}</p></div>
@@ -321,7 +322,7 @@ function renderResults() {
     !conclusions.gap.trim() ? 'The gap judgment is open.' : ''
   ].filter(Boolean);
   return `<section>${heading('Three group conclusions', 'Write the reasons, strongest objections, and remaining uncertainty for each judgment.', editButton('conclusions', '', 'Edit conclusions'))}
-    <div class="cards">${modelViews.map(model => `<article class="card"><p class="eyebrow">${model.label}</p><h3>${model.question}</h3>
+    <div class="cards">${modelViews.map(model => `<article class="card conclusion-card" data-model="${model.id}"><p class="eyebrow">${model.label}</p><h3>${model.question}</h3>
     ${line(conclusions[model.id]) || '<p>Awaiting the group’s conclusion.</p>'}<a class="text-link" href="#models/${model.id}">Review model →</a></article>`).join('')}</div></section>
     <section class="section">${heading('Cross-model comparison and reflection')}<div class="row-list">
     ${schemas.conclusions.fields.slice(3, 7).map(field => `<article class="record-row"><div class="row-content"><h3>${field.label}</h3>${line(conclusions[field.key]) || '<p>Open for group discussion.</p>'}</div></article>`).join('')}
