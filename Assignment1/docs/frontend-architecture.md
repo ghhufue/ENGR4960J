@@ -20,7 +20,7 @@
 
 ## 开发与发布
 
-- 在仓库根目录运行 `npm run dev`，打开 `http://127.0.0.1:5173`。
+- 在 `Assignment1` 目录运行 `npm run dev`，打开 `http://127.0.0.1:5173`。
 - 运行 `npm run check` 检查语法、导入路径，并在内存中验证单文件打包，不生成正式发布文件。
 - 运行 `npm test` 执行核心行为回归测试。
 - 可选运行 `node scripts/browser-check.mjs`：需要本机 Chromium 和支持原生 WebSocket 的 Node.js 22+。使用隔离的临时浏览器资料，不读取日常浏览器账号；截图和下载测试文件保存在 `.tmp/`。

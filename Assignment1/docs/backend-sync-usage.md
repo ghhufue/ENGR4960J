@@ -4,6 +4,8 @@
 
 ## 本机运行
 
+以下命令均在 `Assignment1` 目录中运行。
+
 ```powershell
 npm run server
 ```
@@ -48,7 +50,7 @@ npm run server:public
 
 Sakura 使用 HTTPS 隧道绑定 `api.jixrclub.com`，本地目标为 `127.0.0.1:5173`，开启自动 HTTPS 并加载此域名的受信任证书。GitHub Pages 上点击“连接协作”，项目编号为 `default`，填写私有配置中分配给该成员的令牌。新建服务器不会自动导入各浏览器已有的离线内容；管理员可先导出 JSON 备份，再连接服务器并导入。
 
-`src/js/core/sync-config.js` 为 `ghhufue.github.io` 指定 `https://api.jixrclub.com`；其他页面继续使用同源 API。后端仅允许明确配置的来源，响应携带 Authorization/JSON 的 OPTIONS 预检，CORS 不替代身份验证。更换 Pages 来源或后端域名时，同时更新此配置和 `SYNC_ALLOWED_ORIGINS`。推送 `main` 后由现有 GitHub Actions 发布 `src/`，不上传后端、令牌或数据库。
+`src/js/core/sync-config.js` 为 `ghhufue.github.io` 指定 `https://api.jixrclub.com`；其他页面继续使用同源 API。后端仅允许明确配置的来源，响应携带 Authorization/JSON 的 OPTIONS 预检，CORS 不替代身份验证。更换 Pages 来源或后端域名时，同时更新此配置和 `SYNC_ALLOWED_ORIGINS`。推送到 `main` 的前端或工作流变更会触发 GitHub Pages 发布，上传目录为 `Assignment1/src/`。
 
 ## 实际同步规则
 
